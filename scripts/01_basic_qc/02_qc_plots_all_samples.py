@@ -30,9 +30,9 @@ import matplotlib.patches as mpatches
 from sophiesfunctions.auto_crop import auto_crop_scanpy  # import my custom functions that are packaged locally as sophiesfunctions
 from sophiesfunctions.save_multi_image import save_multi_image
 
-sc.logging.print_header()
 sc.set_figure_params(facecolor="white", figsize=(8, 8))
 sc.settings.verbosity = 3
+
 
 # --- Argparse arguments
 parser = argparse.ArgumentParser(description="Import Visium unfiltered data & plot",
@@ -138,27 +138,6 @@ ncols = len(all_subtypes)
 sc.set_figure_params(scanpy=True, fontsize=12)
 
 
-# Calculate the median
-median_counts = {}
-
-for sample in adata_dict.keys():
-    median_counts[sample] = adata_dict[sample].obs['total_counts'].median()
-
-
-median_counts_subtype = {}
-for subtype in all_subtypes:
-    medians = []
-    samples = adata_per_subtype[subtype].obs['assay_id'].astype('category')
-    for sample in samples.cat.categories:
-        medians.append(median_counts[sample])
-    median_counts_subtype[subtype] = medians
-
-# Calculate the width of each subtype subplot based on how many samples per subtype
-
-grid_spec = []
-
-for subtype in all_subtypes:
-    grid_spec.append(len(adata_per_subtype[subtype].obs['assay_id'].unique()))
 
 # Get some colors for plotting - color by patient id
 
@@ -190,356 +169,232 @@ for n, subtype in enumerate(all_subtypes):
             tmp_colors += [patient_colors[key]]
     plotting_colors[subtype] = tmp_colors
 
-
-# Make the actual plot
-
-fig, axs = plt.subplots(ncols=ncols, figsize=(5*ncols, 5), sharey=True, gridspec_kw={'width_ratios': grid_spec})
-
-if ncols == 1:
-    axs = np.reshape(axs, 1)
-
-for n, subtype in enumerate(all_subtypes):
-    sc.pl.violin(adata_per_subtype[subtype], 
-                keys = ['total_counts'],
-                groupby = 'assay_id', stripplot=False, ax = axs[n], title = subtype, linewidth=1, palette = plotting_colors[subtype])
-    for collection in axs[n].collections: # Adjust the colors of the violin
-        # Get the RGBA values of the fill color
-        fill_color = collection.get_facecolor()
-        darkened_color = fill_color.copy()
-        darkened_color[:,:-1] *= 0.8   # multiply RGB values by 0.8 to darken
-        collection.set_edgecolor(darkened_color) 
-        fill_color[0][-1] = 0.8 # make the fill color a bit transparent
-        collection.set_facecolor(fill_color)
-    # make the subtype the title of each subplot
-    axs[n].set_title('Counts per spot', fontweight='bold')
-    # remove the x-axis label
-    axs[n].set_xlabel('')
-    # move x-axis labels to the left
-    xlabels = axs[n].get_xticklabels()
-    axs[n].set_xticklabels(xlabels, rotation=45, ha='right')
-    # plot median dots
-    medians = median_counts_subtype[subtype]
-    pos = range(len(medians))
-    for tick, median in zip(pos, medians):
-        axs[n].scatter(tick, median, marker='D', color='black', s=10, zorder=3)
-    if n > 0:
-    #     # remove y-axis
-    #     axs[n].set_yticks([])
-    #     axs[n].set_yticklabels([])
-        axs[n].set_ylabel('')
-    #     # axs[n].spines['left'].set_visible(False)
-
-xmin = axs[n].get_xlim()[0]
-xmax = axs[n].get_xlim()[1]
+# Get the positions of samples that should be highlighted
+highlight_samples_indices = []
 for sample in highlight_samples:
-    index = ordered_keys.index(sample)
-    # Find the corresponding x-tick position
-    # Calculate relative positions based on the x-tick position
-    xmin_relative = (index - 0.5) / (len(ordered_keys) - 1)
-    xmax_relative = (index + 0.5) / (len(ordered_keys) - 1)
-    axs[n].axhline(y=0, xmin=xmin_relative, xmax=xmax_relative, color='black', linewidth=2)
-
-# Get all x-tick positions, including minor ticks
-xtick_positions = axs[n].get_xaxis().get_ticklocs()
-
-for sample in highlight_samples:
-    index = ordered_keys.index(sample)
-    x_values = [index-0.5, index+0.5]
-    y_values = [axs[n].get_ylim()[0], axs[n].get_ylim()[0]]
-    axs[0].axline(x_values, y_values, linewidth=5, color='black')
+            index = ordered_keys.index(sample)
+            highlight_samples_indices.append(index)
 
 
+# Define a function for plotting the custom violin
+# --- Step 1: prepare for plotting the violin: calculate the medians, gridspec and prepare the figure
+def prepare_custom_violin(adata_per_subtype, plot_key, ncols=ncols, groupby='assay_id', all_subtypes=all_subtypes, obs=True):
+    # Calculate the median (to be able to plot the median on the violin)
+    median_counts = {}
+    # Deal with variables stored in .obs vs .var
+    if obs:
+        for sample in adata_dict.keys():
+            median_counts[sample] = adata_dict[sample].obs[plot_key].median()
+    else:
+        for sample in adata_dict.keys():
+            median_counts[sample] = adata_dict[sample].var[plot_key].median()
+    median_counts_subtype = {}
+    for subtype in all_subtypes:
+        medians = []
+        samples = adata_per_subtype[subtype].obs[groupby].astype('category')
+        for sample in samples.cat.categories:
+            medians.append(median_counts[sample])
+        median_counts_subtype[subtype] = medians
+    # Calculate the width of each subtype subplot based on how many samples per subtype
+    grid_spec = []
+    for subtype in all_subtypes:
+        grid_spec.append(len(adata_per_subtype[subtype].obs[groupby].unique()))
+    fig, axs = plt.subplots(ncols=ncols, figsize=(5*ncols, 5), sharey=True, gridspec_kw={'width_ratios': grid_spec})
+    # If ncols = 1: need to reshape to make axs iterable
+    if ncols == 1:
+        axs = np.reshape(axs, 1)
+    return median_counts_subtype, axs
+
+# --- Step 2: Plot the actual violin
+def plot_custom_violin(adata_per_subtype, plot_key, median_counts_subtype, axs, groupby='assay_id', title=None, all_subtypes=all_subtypes):
+    # Do the actual plotting
+    for n, (subtype, ax) in enumerate(zip(all_subtypes, axs)):
+        sc.pl.violin(adata_per_subtype[subtype], keys=[plot_key], groupby=groupby, stripplot=False, ax=ax, title=subtype, linewidth=1, palette=plotting_colors[subtype])
+        for i, collection in enumerate(ax.collections):  # Adjust the colors of the violin
+            fill_color = collection.get_facecolor()
+            darkened_color = fill_color.copy()
+            darkened_color[:, :-1] *= 0.8  # multiply RGB values by 0.8 to darken
+            collection.set_edgecolor(darkened_color)
+            fill_color[0][-1] = 0.8  # make the fill color a bit transparent
+            collection.set_facecolor(fill_color)
+            if i in highlight_samples_indices:  # If it's an adj_benign sample: mark this sample with slightly lighter color & dashed outline
+                collection.set_linestyle('dashed')
+                fill_color[0][-1] = 0.6  # make the fill color a bit transparent
+                collection.set_facecolor(fill_color)
+        if title is None:
+            ax.set_title(subtype, fontweight='bold')
+        else:
+            ax.set_title(title, fontweight='bold')
+        ax.set_xlabel('')  # remove the x-axis label
+        xlabels = ax.get_xticklabels()  # move x-axis labels to the left
+        ax.set_xticklabels(xlabels, rotation=45, ha='right')
+        medians = median_counts_subtype[subtype]  # plot median dots
+        pos = range(len(medians))
+        for tick, median in zip(pos, medians):
+            ax.scatter(tick, median, marker='D', color='black', s=10, zorder=3)
+        if n > 0:
+            ax.set_ylabel('')
+    plt.tight_layout()
+
+plot_key = 'total_counts'
+
+# Prepare for plotting
+medians, axs = prepare_custom_violin(adata_per_subtype, plot_key=plot_key)
+
+# Plot the Violin
+plot_custom_violin(adata_per_subtype, plot_key=plot_key, median_counts_subtype=medians, axs=axs, title='Counts per spot')
 
 
+# Prepare for adding a legend (cancer vs adj_benign)
+labels = list(sample_lut['type'].unique())
+colors = ['black'] * len(labels)
+handles = []
 
+for n, color in enumerate(colors):
+    handles.append(mpatches.Patch(color=color))
 
-    # Find the corresponding x-tick position
-    xtick_position = xtick_positions[index]
-    # Calculate relative positions based on the x-tick position
-    xmin_relative = (xtick_position - 0.5) / (len(xtick_positions) - 1)
-    xmax_relative = (xtick_position + 0.5) / (len(xtick_positions) - 1)
-    axs[n].axhline(y=0, xmin=xmin_relative, xmax=xmax_relative, color='gray', linewidth=2)
+# Make function to add the legend with the correct formatting
+def add_custom_legend():
+    legend = plt.legend(handles, labels, bbox_to_anchor=(1.05, 1), loc='upper left', handlelength=1.2, ncol=1)
+    # Make the legend boxes look the same as the barplot
+    for n, legpatch in enumerate(legend.get_patches()):
+            fill_color = legpatch.get_facecolor()
+            fill_color = list(fill_color)
+            fill_color[-1] = 0.6 # make the fill color a bit transparent
+            legpatch.set_color(tuple(fill_color))
+            legpatch.set_edgecolor('black')
+            if n > 0:
+                legpatch.set_linestyle('dashed')
+                fill_color[-1] = 0.4 # make the fill color a bit transparent
+                legpatch.set_color(tuple(fill_color))
+                legpatch.set_edgecolor((0.2,0.2,0.2))
 
-
-xtick_positions = axs[0].get_xticks()
-for sample in highlight_samples:
-    xmin = axs[n].get_xlim()[0]
-    xmax = axs[n].get_xlim()[1]
-    index = ordered_keys.index(sample)
-    # Find the corresponding x-tick position
-    xtick_position = xtick_positions[index]
-    index = ordered_keys.index(sample)
-    axs[n].axhline(y=axs[n].get_ylim()[0], xmin=index - 0.5, xmax=index + 0.5, color='red', linewidth=5)
-
-
-axs[n].axhline(axs[n].get_ylim()[0], xmin=0, xmax=(index + 0.5)/10, color='blue', linewidth=5)
-
-axs[n].axhline(axs[n].get_ylim()[0], xmin=0, xmax=0.1, color='blue', linewidth=5)
-
-
-axs[n].get_ylim()[0]
-
-axs[n].get_xlim()
-
+# Add the legend
+add_custom_legend()
 
 plt.suptitle(f'Number of counts per spot', fontweight='bold', y=1.02, x=0.5, ha='center')
 
-plt.savefig('test.pdf', bbox_inches='tight')
 
 # --- Plot 2: violin plot log(total counts), split by subtype
 
-# Calculate the median
+plot_key = 'log10_counts'
 
-median_log_counts = median_counts_subtype.copy()
+# Prepare for plotting
+medians, axs = prepare_custom_violin(adata_per_subtype, plot_key=plot_key)
 
-for subtype in all_subtypes:
-    for i in range(0, len(median_log_counts[subtype])):
-        median_log_counts[subtype][i] = np.log10(median_log_counts[subtype][i])
+# Plot the Violin
+plot_custom_violin(adata_per_subtype, plot_key=plot_key, median_counts_subtype=medians, axs=axs, title='Counts per spot')
 
-fig, axs = plt.subplots(ncols=ncols, figsize=(5*ncols, 5), sharey=True, gridspec_kw={'width_ratios': grid_spec})
-
-if ncols == 1:
-    axs = np.reshape(axs, 1)
-
-for n, subtype in enumerate(all_subtypes):
-    sc.pl.violin(adata_per_subtype[subtype], 
-                keys = ['log10_counts'],
-                groupby = 'assay_id', stripplot=False, ax = axs[n], title = subtype, linewidth=1, palette = plotting_colors[subtype])
-    for collection in axs[n].collections: # Adjust the colors of the violin
-        # Get the RGBA values of the fill color
-        fill_color = collection.get_facecolor()
-        darkened_color = fill_color.copy()
-        darkened_color[:,:-1] *= 0.8   # multiply RGB values by 0.8 to darken
-        collection.set_edgecolor(darkened_color) 
-        fill_color[0][-1] = 0.8 # make the fill color a bit transparent
-        collection.set_facecolor(fill_color)
-    # make the subtype the title of each subplot
-    axs[n].set_title('Counts per spot', fontweight='bold')
-    # remove the x-axis label
-    axs[n].set_xlabel('')
-    # move x-axis labels to the left
-    xlabels = axs[n].get_xticklabels()
-    axs[n].set_xticklabels(xlabels, rotation=45, ha='right')
-    # set up y-axis log scale layout
-    axs[n].set_ylim(bottom=1)
-    ymin, ymax = axs[n].get_ylim()
-    ymin = 0
-    tick_range = np.arange(np.floor(ymin), ymax)
-    axs[n].yaxis.set_ticks([np.log10(x) for p in tick_range for x in np.linspace(10 ** p, 10 ** (p + 1), 10)], minor=True)
-    axs[n].yaxis.set_major_formatter(mticker.StrMethodFormatter("$10^{{{x:.0f}}}$"))
-    # axs[n].set_yticks(y_tick_labels, y_ticks)
-    # plot median dots
-    medians = median_log_counts[subtype]
-    pos = range(len(medians))
-    for tick, median in zip(pos, medians):
-        axs[n].scatter(tick, median, marker='D', color='black', s=10, zorder=3)
-    if n > 0:
-    #     # remove y-axis
-    #     axs[n].set_yticks([])
-    #     axs[n].set_yticklabels([])
-        axs[n].set_ylabel('')
-    #     # axs[n].spines['left'].set_visible(False)
+# Add custom legend
+add_custom_legend()
 
 plt.suptitle(f'Log(number of counts) per spot', fontweight='bold', y=1.02, x=0.5, ha='center')
 
-plt.savefig('test.pdf', bbox_inches='tight')
 
+# --- Plot 3: violin plot with genes per spot, split by subtype
 
+plot_key = 'n_genes_by_counts'
 
-# --- Plot 2: violin plot with genes per spot, split by subtype
+# Prepare for plotting
+medians, axs = prepare_custom_violin(adata_per_subtype, plot_key=plot_key)
 
-# Calculate the median
+# Plot the Violin
+plot_custom_violin(adata_per_subtype, plot_key=plot_key, median_counts_subtype=medians, axs=axs, title='Genes per spot')
 
-median_genes = {}
-
-for sample in adata_dict.keys():
-    median_genes[sample] = adata_dict[sample].obs['n_genes_by_counts'].median()
-
-
-median_genes_subtype = {}
-for subtype in all_subtypes:
-    medians = []
-    samples = adata_per_subtype[subtype].obs['assay_id'].astype('category')
-    for sample in samples.cat.categories:
-        medians.append(median_genes[sample])
-    median_genes_subtype[subtype] = medians
-
-# Make the actual plot
-
-fig, axs = plt.subplots(ncols=ncols, figsize=(5*ncols, 5), sharey=True, gridspec_kw={'width_ratios': grid_spec})
-
-if ncols == 1:
-    axs = np.reshape(axs, 1)
-
-for n, subtype in enumerate(all_subtypes):
-    sc.pl.violin(adata_per_subtype[subtype], 
-                keys = ['n_genes_by_counts'],
-                groupby = 'assay_id', stripplot=False, ax = axs[n], title = subtype, linewidth=1, palette=plotting_colors[subtype])
-    for collection in axs[n].collections: # Adjust the colors of the violin
-        # Get the RGBA values of the fill color
-        fill_color = collection.get_facecolor()
-        darkened_color = fill_color.copy()
-        darkened_color[:,:-1] *= 0.8   # multiply RGB values by 0.8 to darken
-        collection.set_edgecolor(darkened_color) 
-        fill_color[0][-1] = 0.8 # make the fill color a bit transparent
-        collection.set_facecolor(fill_color)
-    axs[n].set_title('Genes per spot', fontweight='bold')
-    # move x-axis tick labels to the left
-    xlabels = axs[n].get_xticklabels()
-    axs[n].set_xticklabels(xlabels, rotation=45, ha='right')
-    # remove the x-axis label
-    axs[n].set_xlabel('')
-    # plot median dots
-    medians = median_genes_subtype[subtype]
-    pos = range(len(medians))
-    for tick, median in zip(pos, medians):
-        axs[n].scatter(tick, median, marker='D', color='black', s=10, zorder=3)
-    if n > 0:
-    #     # remove y-axis
-    #     axs[n].set_yticks([])
-    #     axs[n].set_yticklabels([])
-        axs[n].set_ylabel('')
-    #     # axs[n].spines['left'].set_visible(False)
+# Add custom legend
+add_custom_legend()
 
 plt.suptitle(f'Number of genes per spot', fontweight='bold', y=1.02, x=0.5, ha='center')
 
-plt.savefig('test.pdf', bbox_inches='tight')
 
+# --- Plot 4: violin plot with pct_mt per spot, split by subtype
 
-# --- Plot 3: violin plot with pct_mt per spot, split by subtype
+plot_key = 'pct_counts_mt'
 
-# Calculate the median
+# Prepare for plotting
+medians, axs = prepare_custom_violin(adata_per_subtype, plot_key=plot_key)
 
-median_mt = {}
+# Plot the Violin
+plot_custom_violin(adata_per_subtype, plot_key=plot_key, median_counts_subtype=medians, axs=axs, title='% MT counts')
 
-for sample in adata_dict.keys():
-    median_mt[sample] = adata_dict[sample].obs['pct_counts_mt'].median()
-
-median_mt_subtype = {}
-for subtype in all_subtypes:
-    medians = []
-    samples = adata_per_subtype[subtype].obs['assay_id'].astype('category')
-    for sample in samples.cat.categories:
-        medians.append(median_mt[sample])
-    median_mt_subtype[subtype] = medians
-
-# Make the actual plot
-
-fig, axs = plt.subplots(ncols=ncols, figsize=(5*ncols, 5), sharey=True, gridspec_kw={'width_ratios': grid_spec})
-
-if ncols == 1:
-    axs = np.reshape(axs, 1)
-
-for n, subtype in enumerate(all_subtypes):
-    sc.pl.violin(adata_per_subtype[subtype], 
-                keys = ['pct_counts_mt'],
-                groupby = 'assay_id', stripplot=False, ax = axs[n], title = subtype, linewidth=1, palette=plotting_colors[subtype])
-    for collection in axs[n].collections: # Adjust the colors of the violin
-        # Get the RGBA values of the fill color
-        fill_color = collection.get_facecolor()
-        darkened_color = fill_color.copy()
-        darkened_color[:,:-1] *= 0.8   # multiply RGB values by 0.8 to darken
-        collection.set_edgecolor(darkened_color) 
-        fill_color[0][-1] = 0.8 # make the fill color a bit transparent
-        collection.set_facecolor(fill_color)
-    # make the subtype the title of each subplot
-    axs[n].set_title('% MT counts', fontweight='bold')
-    # move x-axis tick labels to the left
-    xlabels = axs[n].get_xticklabels()
-    axs[n].set_xticklabels(xlabels, rotation=45, ha='right')
-    # remove the x-axis label
-    axs[n].set_xlabel('')
-    # plot median dots
-    medians = median_mt_subtype[subtype]
-    pos = range(len(medians))
-    for tick, median in zip(pos, medians):
-        axs[n].scatter(tick, median, marker='D', color='black', s=10, zorder=3)
-    if n > 0:
-    #     # remove y-axis
-    #     axs[n].set_yticks([])
-    #     axs[n].set_yticklabels([])
-          axs[n].set_ylabel('')
-    #     # axs[n].spines['left'].set_visible(False)
+# Add custom legend
+add_custom_legend()
 
 plt.suptitle(f'Percentage of mitochondrial counts per spot', fontweight='bold', y=1.02, x=0.5, ha='center')
 
-plt.savefig('test.pdf', bbox_inches='tight')
 
+# --- Plot 5: Plot the number of spots per gene, split by subtype
 
-# --- Plot 4: Plot the number of spots per gene, split by subtype
+plot_key = 'n_cells_by_counts'
 
-# Calculate the median
+# Prepare for plotting
+# Set obs to false because this info is stored in .var
+medians, axs = prepare_custom_violin(adata_per_subtype, plot_key=plot_key, obs=False)
 
-median_spots_genes = {}
+# Define a function for extracting a df from something in var 
+def extract_column_var(plot_key, subtype_in_uns=True, sample_id_key='sample_id'):
+    # Extract a dataframe with n_cells_by_counts for every sample, concat per subtype
+    n_cells_by_counts_dict = {}
+    for sample in adata_dict:
+        if subtype_in_uns:
+            subtype = adata_dict[sample].uns['metadata']['subtype']
+        else:
+            subtype = 'PCa'
+        tmp = adata_dict[sample].var[plot_key]
+        add_sample_col = pd.Series(adata_dict[sample].uns['metadata'][sample_id_key], name = 'sample').repeat(len(tmp))
+        tmp_df = pd.concat([tmp.reset_index(drop=True), add_sample_col.reset_index(drop=True)], axis=1)
+        tmp_df['sample'] = tmp_df['sample'].astype('category')
+        if not subtype in n_cells_by_counts_dict.keys():
+            n_cells_by_counts_dict[subtype] = tmp_df
+        else:
+            n_cells_by_counts_dict[subtype] = pd.concat([n_cells_by_counts_dict[subtype].reset_index(drop=True), tmp_df.reset_index(drop=True)], axis=0)
+    return n_cells_by_counts_dict
 
-for sample in adata_dict.keys():
-    median_spots_genes[sample] = adata_dict[sample].var['n_cells_by_counts'].median()
+extracted_df_dict = extract_column_var(plot_key, subtype_in_uns=False)
 
+# Define a function for plotting a violin plot with seaborn (i.e. starting from a df rather than anndata object)
 
-median_spots_genes_subtype = {}
-for subtype in all_subtypes:
-    medians = []
-    samples = adata_per_subtype[subtype].obs['assay_id'].astype('category')
-    for sample in samples.cat.categories:
-        medians.append(median_spots_genes[sample])
-    median_spots_genes_subtype[subtype] = medians
+def plot_violin_seaborn(extracted_df_dict, plot_key, medians_per_subtype, axs, title=None, all_subtypes=all_subtypes):
+    # Make the actual plot
+    for n, (subtype, ax) in enumerate(zip(all_subtypes, axs)):
+        sns.violinplot(data = extracted_df_dict[subtype], 
+                    x = 'sample', y = plot_key, stripplot=False, ax = ax, title = subtype, linewidth=1, palette=plotting_colors[subtype], 
+                    inner = None, order=sorted(extracted_df_dict[subtype]['sample'].unique()), scale='width')
+        for i, collection in enumerate(ax.collections):  # Adjust the colors of the violin
+            fill_color = collection.get_facecolor()
+            darkened_color = fill_color.copy()
+            darkened_color[:, :-1] *= 0.8  # multiply RGB values by 0.8 to darken
+            collection.set_edgecolor(darkened_color)
+            fill_color[0][-1] = 0.8  # make the fill color a bit transparent
+            collection.set_facecolor(fill_color)
+            if i in highlight_samples_indices:  # If it's an adj_benign sample: mark this sample with slightly lighter color & dashed outline
+                collection.set_linestyle('dashed')
+                fill_color[0][-1] = 0.6  # make the fill color a bit transparent
+                collection.set_facecolor(fill_color)
+        if title is None:
+            ax.set_title(subtype, fontweight='bold')
+        else:
+            ax.set_title(title, fontweight='bold')
+        # move x-axis tick labels to the left
+        xlabels = ax.get_xticklabels()
+        ax.set_xticklabels(xlabels, rotation=45, ha='right')
+        # remove the x-axis label
+        ax.set_xlabel('')
+        # plot median dots
+        medians = medians_per_subtype[subtype]
+        pos = range(len(medians))
+        for tick, median in zip(pos, medians):
+            ax.scatter(tick, median, marker='D', color='black', s=10, zorder=3)
+        if n > 0:
+            axs[n].set_ylabel('')
 
-# Extract a dataframe with n_cells_by_counts for every sample, concat per subtype
+# Plot the violin
+plot_violin_seaborn(extracted_df_dict, plot_key=plot_key, medians_per_subtype=medians, axs=axs, title='Spots per gene')
 
-n_cells_by_counts_dict = {}
-
-for sample in adata_dict:
-    # subtype = adata_dict[sample].uns['metadata']['subtype']
-    subtype = 'PCa'
-    tmp = adata_dict[sample].var['n_cells_by_counts']
-    add_sample_col = pd.Series(adata_dict[sample].uns['metadata']['sample_id'], name = 'sample').repeat(len(tmp))
-    tmp_df = pd.concat([tmp.reset_index(drop=True), add_sample_col.reset_index(drop=True)], axis=1)
-    tmp_df['sample'] = tmp_df['sample'].astype('category')
-    if not subtype in n_cells_by_counts_dict.keys():
-        n_cells_by_counts_dict[subtype] = tmp_df
-    else:
-        n_cells_by_counts_dict[subtype] = pd.concat([n_cells_by_counts_dict[subtype].reset_index(drop=True), tmp_df.reset_index(drop=True)], axis=0)
-
-
-# Make the actual plot
-
-fig, axs = plt.subplots(ncols=ncols, figsize=(5*ncols, 5), sharey=True, gridspec_kw={'width_ratios': grid_spec})
-
-if ncols == 1:
-    axs = np.reshape(axs, 1)
-
-for n, subtype in enumerate(all_subtypes):
-    sns.violinplot(data = n_cells_by_counts_dict[subtype], 
-                x = 'sample', y = 'n_cells_by_counts', stripplot=False, ax = axs[n], title = subtype, linewidth=1, palette=plotting_colors[subtype], 
-                inner = None, order=sorted(n_cells_by_counts_dict[subtype]['sample'].unique()), scale='width')
-    for collection in axs[n].collections: # Adjust the colors of the violin
-        # Get the RGBA values of the fill color
-        fill_color = collection.get_facecolor()
-        darkened_color = fill_color.copy()
-        darkened_color[:,:-1] *= 0.8   # multiply RGB values by 0.8 to darken
-        collection.set_edgecolor(darkened_color) 
-        fill_color[0][-1] = 0.8 # make the fill color a bit transparent
-        collection.set_facecolor(fill_color)
-    axs[n].set_title('Spots per gene', fontweight='bold')
-    # move x-axis tick labels to the left
-    xlabels = axs[n].get_xticklabels()
-    axs[n].set_xticklabels(xlabels, rotation=45, ha='right')
-    # remove the x-axis label
-    axs[n].set_xlabel('')
-    # plot median dots
-    medians = median_spots_genes_subtype[subtype]
-    pos = range(len(medians))
-    for tick, median in zip(pos, medians):
-        axs[n].scatter(tick, median, marker='D', color='black', s=10, zorder=3)
-    if n > 0:
-    #     # remove y-axis
-    #     axs[n].set_yticks([])
-    #     axs[n].set_yticklabels([])
-          axs[n].set_ylabel('')
-    #     # axs[n].spines['left'].set_visible(False)
+# Add custom legend
+add_custom_legend()
 
 plt.suptitle(f'Number of spots per gene', fontweight='bold', y=1.02, x=0.5, ha='center')
-plt.savefig('test.pdf', bbox_inches='tight')
 
 
 # --- Plot the total spots on tissue, total counts, total genes per sample
@@ -565,116 +420,81 @@ for sample in adata_dict:
     else:
         barplot_dict[subtype] = pd.concat([barplot_dict[subtype].reset_index(drop=True), tmp_df.reset_index(drop=True)], axis=0)
 
+
 # --- Plot 5: Plot the total number of counts (barplot)
 
-fig, axs = plt.subplots(ncols=ncols, figsize=(5*ncols, 5), sharey=True, gridspec_kw={'width_ratios': grid_spec})
+medians, axs = prepare_custom_violin(adata_per_subtype, plot_key='n_cells_by_counts', obs=False)
 
-if ncols == 1:
-    axs = np.reshape(axs, 1)
-
-for n, subtype in enumerate(all_subtypes):
-    sns.barplot(data = barplot_dict[subtype], 
-                x = 'sample', y = 'n_counts', ax = axs[n], linewidth=1, palette=plotting_colors[subtype], 
+# Define a function for creating barplots
+def plot_seaborn_barplot(barplot_dict, plot_key, axs, title=None, all_subtypes=all_subtypes):
+    for n, (subtype, ax) in enumerate(zip(all_subtypes, axs)):
+        sns.barplot(data = barplot_dict[subtype], 
+                x='sample', y=plot_key, ax = ax, linewidth=1, palette=plotting_colors[subtype], 
                 order=sorted(barplot_dict[subtype]['sample'].unique()))
-    for bar in axs[n].patches: # Adjust the colors of the barplot
-        # Get the RGBA values of the fill color
-        fill_color = bar.get_facecolor()
-        fill_color = list(fill_color)
-        darkened_color = fill_color.copy()
-        for i in range(len(darkened_color)-1):
-            darkened_color[i] *= 0.8
-        fill_color[-1] = 0.8 # make the fill color a bit transparent
-        bar.set_color(tuple(fill_color))
-        bar.set_edgecolor(tuple(darkened_color))
-    # make the subtype the title of each subplot
-    axs[n].set_title('Total counts', fontweight='bold')
-    # move x-axis tick labels to the left
-    xlabels = axs[n].get_xticklabels()
-    axs[n].set_xticklabels(xlabels, rotation=45, ha='right')
-    # remove the x-axis label
-    axs[n].set_xlabel('')
-    if n > 0:
-    #     # remove y-axis
-    #     axs[n].set_yticks([])
-    #     axs[n].set_yticklabels([])
-          axs[n].set_ylabel('')
-    #     # axs[n].spines['left'].set_visible(False)
+        for i, bar in enumerate(ax.patches):  # Adjust the colors of the bar
+            # Get the RGBA values of the fill color
+            fill_color = bar.get_facecolor()
+            fill_color = list(fill_color)
+            darkened_color = fill_color.copy()
+            for j in range(len(darkened_color)-1):
+                darkened_color[j] *= 0.8
+            fill_color[-1] = 0.8 # make the fill color a bit transparent
+            bar.set_color(tuple(fill_color))
+            bar.set_edgecolor(tuple(darkened_color))
+            sample_index = sorted(barplot_dict[subtype]['sample'].unique())[i]
+            if sample_index in highlight_samples:  # If it's an adj_benign sample: mark this sample with slightly lighter color & dashed outline
+                bar.set_linestyle('dashed')
+                fill_color[-1] = 0.6  # make the fill color a bit transparent
+                bar.set_color(fill_color)
+        if title is None:
+            ax.set_title(subtype, fontweight='bold')
+        else:
+            ax.set_title(title, fontweight='bold')
+        # move x-axis tick labels to the left
+        xlabels = ax.get_xticklabels()
+        ax.set_xticklabels(xlabels, rotation=45, ha='right')
+        # remove the x-axis label
+        ax.set_xlabel('')
+        if n > 0:
+            ax.set_ylabel('')
+
+
+# Plot the barplot
+plot_key = 'n_counts'
+plot_seaborn_barplot(barplot_dict, plot_key, axs, title='Total counts')
+
+# Add custom legend
+add_custom_legend()
 
 plt.suptitle(f'Total number of counts', fontweight='bold', y=1.02, x=0.5, ha='center')
-plt.savefig('test.pdf', bbox_inches='tight')
 
 
 # --- Plot 6: Plot the number of spots 'in tissue' (barplot)
 
-fig, axs = plt.subplots(ncols=ncols, figsize=(5*ncols, 5), sharey=True, gridspec_kw={'width_ratios': grid_spec})
+# Prepare  for plotting
+medians, axs = prepare_custom_violin(adata_per_subtype, plot_key='n_cells_by_counts', obs=False)
 
-if ncols == 1:
-    axs = np.reshape(axs, 1)
+# Plot the barplot
+plot_key = 'in_tissue'
+plot_seaborn_barplot(barplot_dict, plot_key, axs, title='Spots in tissue')
 
-for n, subtype in enumerate(all_subtypes):
-    sns.barplot(data = barplot_dict[subtype], 
-                x = 'sample', y = 'in_tissue', ax = axs[n], linewidth=1, palette=plotting_colors[subtype], 
-                order=sorted(barplot_dict[subtype]['sample'].unique()))
-    for bar in axs[n].patches: # Adjust the colors of the barplot
-        # Get the RGBA values of the fill color
-        fill_color = bar.get_facecolor()
-        fill_color = list(fill_color)
-        darkened_color = fill_color.copy()
-        for i in range(len(darkened_color)-1):
-            darkened_color[i] *= 0.8
-        fill_color[-1] = 0.8 # make the fill color a bit transparent
-        bar.set_color(tuple(fill_color))
-        bar.set_edgecolor(tuple(darkened_color))
-    axs[n].set_title('Spots in tissue', fontweight='bold', loc='left') # Move title so it doesn't overlap
-    # move x-axis tick labels to the left
-    xlabels = axs[n].get_xticklabels()
-    axs[n].set_xticklabels(xlabels, rotation=45, ha='right')
-    # remove the x-axis label
-    axs[n].set_xlabel('')
-    if n > 0:
-    #     # remove y-axis
-    #     axs[n].set_yticks([])
-    #     axs[n].set_yticklabels([])
-          axs[n].set_ylabel('')
-    #     # axs[n].spines['left'].set_visible(False)
+# Add custom legend
+add_custom_legend()
 
 plt.suptitle(f"Number of spots 'in tissue'", fontweight='bold', y=1.02, x=0.5, ha='center')
 
 
 # --- Plot 7: Plot the percentage of low quality spots (barplot)
 
-fig, axs = plt.subplots(ncols=ncols, figsize=(5*ncols, 5), sharey=True, gridspec_kw={'width_ratios': grid_spec})
+# Prepare  for plotting
+medians, axs = prepare_custom_violin(adata_per_subtype, plot_key='n_cells_by_counts', obs=False)
 
-if ncols == 1:
-    axs = np.reshape(axs, 1)
+# Plot the barplot
+plot_key = 'pct_low_q'
+plot_seaborn_barplot(barplot_dict, plot_key, axs, title='Spots in tissue')
 
-for n, subtype in enumerate(all_subtypes):
-    sns.barplot(data = barplot_dict[subtype], 
-                x = 'sample', y = 'pct_low_q', ax = axs[n], linewidth=1, palette=plotting_colors[subtype], 
-                order=sorted(barplot_dict[subtype]['sample'].unique()))
-    for bar in axs[n].patches: # Adjust the colors of the barplot
-        # Get the RGBA values of the fill color
-        fill_color = bar.get_facecolor()
-        fill_color = list(fill_color)
-        darkened_color = fill_color.copy()
-        for i in range(len(darkened_color)-1):
-            darkened_color[i] *= 0.8
-        fill_color[-1] = 0.8 # make the fill color a bit transparent
-        bar.set_color(tuple(fill_color))
-        bar.set_edgecolor(tuple(darkened_color))
-    # make the subtype the title of each subplot
-    axs[n].set_title('Pct low quality spots', fontweight='bold')
-    # move x-axis tick labels to the left
-    xlabels = axs[n].get_xticklabels()
-    axs[n].set_xticklabels(xlabels, rotation=45, ha='right')
-    # remove the x-axis label
-    axs[n].set_xlabel('')
-    if n > 0:
-    #     # remove y-axis
-    #     axs[n].set_yticks([])
-    #     axs[n].set_yticklabels([])
-          axs[n].set_ylabel('')
-    #     # axs[n].spines['left'].set_visible(False)
+# Add custom legend
+add_custom_legend()
 
 plt.suptitle(f"Percentage of low quality spots", fontweight='bold', y=1.02, x=0.5, ha='center')
 
@@ -713,7 +533,6 @@ plt.tight_layout()
 # set the marker for each handle to 'o' (circle)
 plt.legend(handles=handles, labels=labels, bbox_to_anchor=(1.05, 1), loc='upper left')
 
-plt.savefig('test.pdf', bbox_inches='tight')
 
 # --- Save output
 # Put in a timestamped folder to avoid overwriting older plots
