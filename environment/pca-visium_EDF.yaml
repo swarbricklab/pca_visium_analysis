@@ -1,0 +1,27 @@
+name: pca-visium
+
+channels:
+  - conda-forge
+  - bioconda
+  - pypi
+
+dependencies:
+  - python
+  - anndata
+  - arpack
+  - conda
+  - git
+  - mamba
+  - numpy
+  - pandas
+  - rpy2
+  - scanpy
+  - seaborn
+  - setuptools
+  - squidpy
+  - stlearn
+  - pip
+  - pip:
+    - mycolorpy
+
+# # - sophies-functions: install locally via pip
