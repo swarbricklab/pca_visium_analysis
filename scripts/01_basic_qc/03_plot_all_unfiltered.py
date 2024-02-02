@@ -126,7 +126,8 @@ for sample in ordered_keys:
         plt.grid(False)
         plt.axis('off')
         plt.title('cytassist')
-    plt.suptitle(f'{sample} unfiltered plots', fontsize=18, fontweight='bold', y=1.05, x=0.5, ha='center')
+    sample_type = sample_lut.loc[sample, 'type']
+    plt.suptitle(f'{sample} ({sample_type}) unfiltered plots', fontsize=18, fontweight='bold', y=1.05, x=0.5, ha='center')
 
 
 # --- Save output

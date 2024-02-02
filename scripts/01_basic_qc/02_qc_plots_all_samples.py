@@ -62,24 +62,6 @@ use_data = args['use_data']
 
 print(f'Samples in python: {sample_list}')
 
-# -- Load data
-# Multiple samples as a dictionary seems like an okay idea
-adata_dict = {}
-
-for sample in sample_list:
-    adata_dict[sample] = ad.read(os.path.join(h5ad_dir, 'raw', f'{sample}_raw.h5ad'))
-
-# Add some info for plotting
-# And make a sample patient LUT
-sample_donor_lut = {}
-
-for sample in sample_list:
-    adata_dict[sample].obs['assay_id'] = adata_dict[sample].uns['metadata']['sample_id']
-    adata_dict[sample].obs['donor_id'] = adata_dict[sample].uns['metadata']['patient_id']
-    sample_donor_lut[sample] = adata_dict[sample].uns['metadata']['patient_id']
-    adata_dict[sample].obs['sample_type'] = adata_dict[sample].uns['metadata']['sample_type']
-    adata_dict[sample].obs['subtype'] = 'PCa'
-
 # --- Get some info from the sample sheet
 
 # Extract the section_id
@@ -88,6 +70,26 @@ sample_sheet_file = 'sample_sheet.csv'
 
 sample_sheet = pd.read_csv(os.path.join(sample_dir, sample_sheet_file))
 sample_lut = sample_sheet.set_index('sample_id')
+
+
+# -- Load data
+# Multiple samples as a dictionary seems like an okay idea
+adata_dict = {}
+
+for sample in sample_list:
+    sample_name = sample_lut.loc[sample, 'sample_name']
+    adata_dict[sample] = ad.read(os.path.join(h5ad_dir, 'raw', f'{sample_name}_raw.h5ad'))
+
+# Add some info for plotting
+# And make a sample patient LUT
+sample_donor_lut = {}
+
+for sample in sample_list:
+    adata_dict[sample].obs['assay_id'] = sample
+    adata_dict[sample].obs['donor_id'] = sample_lut.loc[sample, 'patient_id']
+    sample_donor_lut[sample] = sample_lut.loc[sample, 'patient_id']
+    adata_dict[sample].obs['sample_type'] = sample_lut.loc[sample, 'type']
+    adata_dict[sample].obs['subtype'] = 'PCa'
 
 
 # --- Order based on unique sample ID

@@ -61,9 +61,6 @@ min_count = args["min_count"]
 min_gene = args["min_gene"]
 min_spots = args["min_spots"]
 
-# --- Load the adata object
-
-adata = ad.read(os.path.join(h5ad_dir, 'raw', f'{sample_id}_raw.h5ad'))
 
 # --- Get some info from the sample sheet
 
@@ -72,7 +69,15 @@ sample_dir = os.path.join(project_dir, 'config')
 sample_sheet_file = 'sample_sheet.csv'
 
 sample_sheet = pd.read_csv(os.path.join(sample_dir, sample_sheet_file))
-sample_type = sample_sheet[sample_sheet['sample_id'] == sample_id]['type'].values[0]
+sample_lut = sample_sheet.set_index('sample_id')
+
+sample_name = sample_lut.loc[sample_id, 'sample_name']
+sample_type = sample_lut.loc[sample_id, 'type']
+
+
+# --- Load the adata object
+
+adata = ad.read(os.path.join(h5ad_dir, 'raw', f'{sample_name}_raw.h5ad'))
 
 
 # --- Plot QC metrics
