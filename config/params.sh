@@ -23,7 +23,7 @@ min_gene=200
 min_spots=3
 
 # Environment to use
-environment="spatial-brca-preview"
+environment="pca-visium"
 
 # Seed
 seed=42
