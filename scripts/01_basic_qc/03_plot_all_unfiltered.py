@@ -111,18 +111,19 @@ for sample in ordered_keys:
     sample_name = sample_lut.loc[sample, 'sample_name']
     if 'cytassist' in adata_dict[sample].uns['spatial'][sample_name]['images']:
         cytassist = True
-        ncol = 5
-        width_ratios = [1,1,1,1,0.9]
+        ncol = 6
+        width_ratios = [1,1,1,1,1,0.9]
     else:
-        ncol = 4
-        width_ratios = [1,1,1,1]
+        ncol = 5
+        width_ratios = [1,1,1,1,1]
     fig, axs = plt.subplots(1, ncol, figsize=(7*ncol, 5), gridspec_kw={'wspace': 0, 'width_ratios': width_ratios})
-    sc.pl.spatial(adata_dict[sample], color=['total_counts'], size=1.5, color_map=cmap_test, wspace=0, crop_coord=coords[sample], ax=axs[0])
-    sc.pl.spatial(adata_dict[sample], color=['log_counts'], size=1.5, color_map=cmap_test, wspace=0, crop_coord=coords[sample], vmin=0, ax=axs[1])
-    sc.pl.spatial(adata_dict[sample], color=['n_genes_by_counts'], size=1.5, color_map=cmap_test, wspace=0, crop_coord=coords[sample], ax=axs[2])
-    sc.pl.spatial(adata_dict[sample], size=1.5, wspace=0, crop_coord=coords[sample], ax=axs[3], title=f"{sample} - H&E")
+    sc.pl.spatial(adata_dict[sample], color=['in_tissue'], size=1.5, color_map=cmap_test, wspace=0, crop_coord=coords[sample], ax=axs[0])
+    sc.pl.spatial(adata_dict[sample], color=['total_counts'], size=1.5, color_map=cmap_test, wspace=0, crop_coord=coords[sample], ax=axs[1])
+    sc.pl.spatial(adata_dict[sample], color=['log_counts'], size=1.5, color_map=cmap_test, wspace=0, crop_coord=coords[sample], vmin=0, ax=axs[2])
+    sc.pl.spatial(adata_dict[sample], color=['n_genes_by_counts'], size=1.5, color_map=cmap_test, wspace=0, crop_coord=coords[sample], ax=axs[3])
+    sc.pl.spatial(adata_dict[sample], size=1.5, wspace=0, crop_coord=coords[sample], ax=axs[4], title=f"{sample} - H&E")
     if cytassist:
-        axs[4].imshow(adata_dict[sample].uns['spatial'][sample_name]['images']['cytassist'])
+        axs[5].imshow(adata_dict[sample].uns['spatial'][sample_name]['images']['cytassist'])
         plt.grid(False)
         plt.axis('off')
         plt.title('cytassist')
