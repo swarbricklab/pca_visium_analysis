@@ -17,6 +17,7 @@ min_count=$6
 min_gene=$7
 min_spots=$8
 res_dir=$9
+use_data=${10}
 
 # load environment
 conda activate $environment
@@ -31,3 +32,4 @@ $function_script_file \
     --min_gene $min_gene \
     --min_spots $min_spots \
     --res_dir $res_dir \
+    --use_data $use_data \
