@@ -56,7 +56,7 @@ do
         -V \
         -pe smp $n_cores \
         -l mem_requested=8G \
-        $run_script_file $function_script_file $h5ad_dir $project_dir $s $environment $min_count $min_gene $min_spots $res_dir
+        $run_script_file $function_script_file $h5ad_dir $project_dir $s $environment $min_count $min_gene $min_spots $res_dir $use_data
         
 done
 

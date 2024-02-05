@@ -71,8 +71,6 @@ sample_lut = sample_sheet.set_index('sample_id')
 adata_dict = {}
 
 for sample in sample_list:
-    if sample == '20333':
-        sample = '20033'
     sample_name = sample_lut.loc[sample, 'sample_name']
     adata_dict[sample] = ad.read(os.path.join(h5ad_dir, 'raw_feature_bc_matrix', f'{sample_name}_raw_feature_bc_matrix.h5ad'))
 

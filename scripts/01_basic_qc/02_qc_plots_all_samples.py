@@ -103,8 +103,6 @@ ordered_keys = sorted(ordered_keys)
 highlight_samples = []
 
 for sample in ordered_keys:
-    if sample == '20333':
-        sample = '20033'
     if sample_lut.loc[sample, 'type'] == 'adj_benign':
         highlight_samples.append(sample)
 
