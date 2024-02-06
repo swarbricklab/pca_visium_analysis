@@ -1,2 +1,6 @@
 [cache]
     dir = /directflow/TumourProgressionGroupTemp/projects/dvc/cache/pca_visium_analysis
+[core]
+    remote = pca_visium_analysis
+['remote "pca_visium_analysis"']
+    url = ssh://gadi-dm.nci.org.au/g/data/a56/dvc/remotes/pca_visium_analysis
