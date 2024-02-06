@@ -26,7 +26,6 @@ from sophiesfunctions.color_functions import generate_color_variations
 from sophiesfunctions.misc_functions import flatten
 from sophiesfunctions.plotting_aids import adjust_label_positions
 
-sc.logging.print_header()
 sc.set_figure_params(facecolor="white", figsize=(6, 6))
 sc.settings.verbosity = 3
 
@@ -92,6 +91,14 @@ else:
     adata = ad.read(os.path.join(h5ad_dir, 'log_norm', f'{sample_name}_log_norm.h5ad'))
 
 
+# --- Specify layer to use
+
+if use_data == "SCT":
+    use_layer = "SCT_data"
+else:
+    use_layer = "log_norm"
+
+
 # --- Calculate crop coords for optimal presentation
 coords = auto_crop_scanpy(adata, border_size=0.1)
 
@@ -129,17 +136,13 @@ adata.obs['log_counts'] = np.log(adata.obs['total_counts'])
 to_plot = ['total_counts', 'log_counts', 'n_genes_by_counts', 'pct_counts_mt']
 
 sc.pl.umap(adata, wspace=0.3, color = to_plot, ncols=len(to_plot))
-plt.suptitle(f'{sample_id} ({sample_type} UMAP qc metrics - Use data: {use_data}', y=1.1, fontweight='bold')
+plt.suptitle(f'{sample_id} ({sample_type}) UMAP qc metrics - Use data: {use_data}', y=1.1, fontweight='bold')
 
 
 # --- Plot 4: Leiden clusters on UMAP
 
-ncols = 3
-
-fig, axs = plt.subplots(ncols=ncols, figsize=(5*ncols, 5), sharey=True)
-
-n=0
-sc.pl.umap(adata, color = 'leiden', ax=axs[n])
+sc.pl.umap(adata, color = 'leiden')
+plt.suptitle(f'{sample_id} ({sample_type}) - Leiden clusters - Use data: {use_data}', y=1.1, fontweight='bold')
 
 
 # --- Plot 5: Leiden clusters spatially
@@ -158,24 +161,49 @@ n+=1
 sc.pl.spatial(adata, color='leiden', bw=False, size=spot_size, alpha_img=0.5, crop_coord=coords, title=f'{sample_id} - Leiden (big spots)', ax=axs[n])
 
 plt.tight_layout()
+plt.suptitle(f'{sample_id} ({sample_type}) - Leiden clusters spatially - Use data: {use_data}', y=1.1, fontweight='bold')
 
 plt.savefig('test.pdf', bbox_inches='tight')
 
 
+# --- Extract marker genes
+
+rank_genes_key = 'rank_genes_leiden'
+sc.tl.rank_genes_groups(adata, 'leiden', use_raw = False, layer=use_layer, method='wilcoxon', key_added=rank_genes_key)
+
+
+# --- Plot 6: Heatmaps of the top 10 genes per cluster
+
+sc.pl.rank_genes_groups_heatmap(adata, n_genes=10, groupby='leiden', key=rank_genes_key, layer=use_layer)
+plt.suptitle(f'{sample_id} ({sample_type}) - Top 10 genes per cluster - Use data: {use_data}', y=1.1, fontweight='bold')
+
+
+# --- Plot 7: Dot plots for top 10 genes per cluster
+
+
+sc.pl.rank_genes_groups_dotplot(adata, n_genes=10, groupby='leiden', key=rank_genes_key, layer=use_layer)
+plt.suptitle(f'{sample_id} ({sample_type}) - Top 10 genes per cluster - Use data: {use_data}', y=1.1, fontweight='bold')
+
+
+# --- Plot 8: 1 vs rest plots
+
+sc.pl.rank_genes_groups(adata, n_genes=25, groupby='leiden', key=rank_genes_key, layer=use_layer)
+plt.suptitle(f'{sample_id} ({sample_type}) - Leiden clusters 1 vs rest plots, 25 genes - Use data: {use_data}', y=1.1, fontweight='bold')
+
 
 # --- Save output
 # Put in a timestamped folder to avoid overwriting older plots
-qc_dir = os.path.join(res_dir, 'clustering')
+qc_dir = os.path.join(res_dir, 'clustering', 'initial_qc_clustering')
 os.makedirs(qc_dir, exist_ok=True)
 
 os.chdir(qc_dir)
 
-filename = "PCA_UMAP_results.pdf"
+filename = f"{sample_id}_PCA_UMAP_leiden.pdf"
 
 today = date.today()
 today = today.strftime("%Y%m%d")
 
-out_dir = os.path.join(qc_dir, use_data, today)
+out_dir = os.path.join(qc_dir, today)
 os.makedirs(out_dir, exist_ok=True)
 
 print(f'Saving plot as {filename} in {qc_dir}')
