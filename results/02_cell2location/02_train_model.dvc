@@ -1,0 +1,5 @@
+outs:
+- md5: 8a00da352c3aadec327cefb854aed91f.dir
+  size: 1779630516
+  nfiles: 7
+  path: 02_train_model
