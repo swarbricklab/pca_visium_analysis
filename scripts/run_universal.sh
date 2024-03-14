@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 # --- Aim: automatically a python or R script on a specific sample
 
 # print the date & time for the log file
@@ -9,27 +10,27 @@ echo "Start time: $now"
 
 # arguments from submission file
 function_script_file=$1
-h5ad_dir=$2
-project_dir=$3
-sample_id=$4
-environment=$5
-min_count=$6
-min_gene=$7
-min_spots=$8
-res_dir=$9
-use_data=${10}
+projectName=$2
+repo=$3
+exp=$4
+analysis=$5
+sample_id=$6
+environment=$7
+
+# Paths to downstream scripts
+h5ad_dir=$8
+model_dir=$9
 
 # load environment
-conda activate $environment
+conda activate "$environment"
 echo "Run script $function_script_file"
 
 # script file 
 $function_script_file \
-    --h5ad_dir $h5ad_dir \
+    --projectName $projectName \
+    --repo $repo \
+    --exp $exp \
+    --analysis $analysis \
     --sample_id $sample_id \
-    --project_dir $project_dir \
-    --min_count $min_count \
-    --min_gene $min_gene \
-    --min_spots $min_spots \
-    --res_dir $res_dir \
-    --use_data $use_data \
+    --h5ad_dir $h5ad_dir \
+    --model_dir $model_dir \

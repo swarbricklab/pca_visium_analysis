@@ -1,35 +1,37 @@
 # Parameters for submission scripts (submit_universal.sh & submit_dict.sh)
 
-# Project name
-project_name="pca_visium_analysis"
-
 # --- Directories
 
-cwd=$(pwd)
+# 01 PROJECT
+projectName="PCa_Visium"
+# 02 REPO NAME
+repo="pca_visium_analysis"
+# 03 EXP CODE
+exp="02_cell2location"
+# 04 ANALYSIS
+analysis="02_make_anndata_from_seurat"
+# 05 SAMPLE ID
+sample_id="PCa_atlas"
 
-# Get the project directory (root)
-# Use dirname to get one directory up (assuming the scripts folder is one down from the root)
-project_dir=$(dirname "$cwd")
-
-res_dir="$project_dir/results"
-h5ad_dir="$project_dir/data/anndata_objects" # Path to the h5ad files (anndata objects)
-
-log_dir="$project_dir/logs"
-mkdir -p $log_dir
-
-# Other arguments (for qc)
+# --- Other Args (for QC) 
+# 06 MIN COUNT
 min_count=1000
+# 07 MIN GENE
 min_gene=200
-min_spots=3
+# min_spots=3
 
-# Environment to use
+# 08 ENVIRONMENT
 environment="pca-visium"
 
-# Seed
-seed=42
+# 09 DATA TO USE (Which data to use - different normalization methods: SCTransform or scanpy's log norm)
+use_data="log_norm"
 
-# Which data to use - different normalization methods: SCTransform or scanpy's log norm
-use_data="log_norm" # which data to use (either 'SCT' or 'log_norm')
+# make a log directory
+logDir="/share/ScratchGeneral/evaapo/projects/${projectName}/${repo}/results/${exp}/${analysis}/logs/${jobName}/"
+mkdir -p $logDir
+
+# seed
+seed=42
 
 # Visium sample sheet: contains the names of the visium samples
 config_dir="$project_dir/config"
