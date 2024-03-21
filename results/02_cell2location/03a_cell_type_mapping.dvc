@@ -1,5 +1,5 @@
 outs:
-- md5: be217b8fe1a2a4dc3c7c8166cab2eec9.dir
-  size: 1432717333
-  nfiles: 64
+- md5: 8334bcd6e2ae6ef96434e1c77af42878.dir
+  size: 1432717062
+  nfiles: 63
   path: 03a_cell_type_mapping
