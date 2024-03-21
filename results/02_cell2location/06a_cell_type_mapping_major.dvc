@@ -1,0 +1,5 @@
+outs:
+- md5: 19b723e722c488db494a9d17c1c5a64f.dir
+  size: 1288042299
+  nfiles: 70
+  path: 06a_cell_type_mapping_major
