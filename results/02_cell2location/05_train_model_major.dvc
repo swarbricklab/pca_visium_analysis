@@ -1,5 +1,5 @@
 outs:
-- md5: 7435c077f30b53f12f5ea6d6ab41eea7.dir
-  size: 1779631136
+- md5: e28af4906d2ae26eb505edff2fe7188d.dir
+  size: 1730652954
   nfiles: 7
   path: 05_train_model_major
