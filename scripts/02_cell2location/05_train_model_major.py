@@ -102,7 +102,7 @@ plt.close()
 # --- Prepare for regression model
 
 # Arguments
-labels_key = 'celltype_minor_v2'
+labels_key = 'celltype_major_v2'
 donor_id = 'sample_id'
 batch_key = 'orig.ident' # this is the capture reaction (PCa1:PCa16)
 
