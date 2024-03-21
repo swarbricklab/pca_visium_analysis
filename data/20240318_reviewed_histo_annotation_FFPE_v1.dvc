@@ -1,0 +1,5 @@
+outs:
+- md5: f862f23799e33eec4728c79c0de31ec1.dir
+  size: 358576
+  nfiles: 6
+  path: 20240318_reviewed_histo_annotation_FFPE_v1
