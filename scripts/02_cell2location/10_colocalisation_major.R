@@ -137,6 +137,9 @@ merged_df <- inner_join(df_tidy, histo_df, by = c("sample_id", "Barcode"))
 
 spread_df <- spread(merged_df, key = celltype_major_v2, value = c2l_value)
 
+# exclude "Exclude" histology from the analysis - this will be spots outside of the tissue, etc
+spread_df <- spread_df %>% filter(Histology != "Exclude")
+
 # ---------------------------------------------------
 # test correlations, with significance --------------
 # ---------------------------------------------------
