@@ -1,0 +1,5 @@
+outs:
+- md5: 9be715a3772034574450234f493afaf3.dir
+  size: 736853
+  nfiles: 12
+  path: 08_visualise_proportions_minor

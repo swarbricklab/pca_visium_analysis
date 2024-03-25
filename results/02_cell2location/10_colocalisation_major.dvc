@@ -1,0 +1,5 @@
+outs:
+- md5: c48dfcfb7a3ab5a0ffa9968c770df598.dir
+  size: 19676
+  nfiles: 3
+  path: 10_colocalisation_major

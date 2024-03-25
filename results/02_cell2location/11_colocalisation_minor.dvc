@@ -1,0 +1,5 @@
+outs:
+- md5: 14d51edc4922305b367497272a851b08.dir
+  size: 20760
+  nfiles: 3
+  path: 11_colocalisation_minor
