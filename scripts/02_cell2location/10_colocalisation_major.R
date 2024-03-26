@@ -142,6 +142,7 @@ spread_df <- spread_df %>% filter(Histology != "Exclude")
 
 # ---------------------------------------------------
 # test correlations, with significance --------------
+# done on a per sample basis ------------------------
 # ---------------------------------------------------
 
 ## add pearson correlation coefficients to heatmap
@@ -361,6 +362,250 @@ pdf(paste0(figDir, "celltype_major_cell2location_clustered.pdf"), width = 15, he
 print(p)
 dev.off()
 
+# ---------------------------------------------------------------------------
+# REPEAT ALL OF THE ABOVE, NOW USING HISTOLOGY AS A GROUPING VARIABLE -------
+# RATHER THAN SAMPLE ID -----------------------------------------------------
+# ---------------------------------------------------------------------------
+
+# reload/create df
+
+spread_df <- spread(merged_df, key = celltype_major_v2, value = c2l_value)
+
+# exclude "Exclude" histology from the analysis - this will be spots outside of the tissue, etc
+spread_df <- spread_df %>% filter(Histology != "Exclude")
+
+# in Histology column, swap empty spaces with an underscore
+spread_df$Histology <- gsub(" ", "_", spread_df$Histology)
+
+# also remove unannotated spots (just one in this case)
+spread_df <- spread_df[spread_df$Histology != "", ]
+
+# fix transitional
+spread_df$Histology <- gsub("\\(|\\)", "", spread_df$Histology)
+
+# Function to calculate Pearson correlation and p-values for a given sample_id
+calculate_correlations_histo <- function(df, histology, celltype) {
+  # Filter the data for the given sample_id
+  sample_data <- df %>%
+    filter(Histology == !!histology) %>% select(-sample_id, -Barcode, -type, -Histology)
+
+  # Select the column of interest for correlation analysis (specified celltype)
+  numeric_vector <- sample_data[[celltype]]
+
+  # Initialize an empty data frame to store results
+  result_df <- data.frame(
+    Celltype_Pair = character(),  # Column to identify the signature pair
+    Correlation = numeric(),       # Column for correlation coefficients
+    P_Value = numeric()            # Column for p-values
+  )
+
+  # Loop through each column (signature) for correlation analysis
+  for (signature_col in colnames(sample_data)) {
+    # Skip the column representing the specified celltype itself
+    if (signature_col != celltype) {
+      # Run correlation test
+      cor_pval_result <- cor.test(numeric_vector, sample_data[[signature_col]], method = "pearson")
+
+      # Extract results
+      correlation_coefficient <- cor_pval_result$estimate
+      p_value <- cor_pval_result$p.value
+
+      # Append results to the data frame
+      result_df <- rbind(result_df, data.frame(
+        Celltype_Pair = paste(celltype, "_vs_", signature_col, sep = ""),
+        Correlation = correlation_coefficient,
+        P_Value = p_value
+      ))
+    }
+  }
+
+  return(result_df)
+}
+
+# List of cell types of interest (lineage 1 comparison to all other cell types at major level)
+cell_types_of_interest <- c("CAFs", "Epithelial", "SMCs", "PNS_glial", "Endothelial")
+
+# Create an empty list to store the correlation data frames for each cell type
+correlation_list <- list()
+
+# Loop through each cell type of interest
+for (cell_type in cell_types_of_interest) {
+  print(cell_type)
+  
+  # Loop through each unique Histology and calculate the correlations for the current cell type
+  for (histology in unique(as.factor(spread_df$Histology))) {
+    print(histology)
+    
+    # Calculate correlations for the current cell type and sample ID
+    correlation_df <- calculate_correlations_histo(spread_df, histology, cell_type)
+
+    correlation_df$Histology <- histology
+    
+    # Store the correlation dataframe in the list
+    correlation_list[[paste(cell_type, histology, sep = "_")]] <- correlation_df
+  }
+}
+
+# Combine all correlation data frames into a single data frame
+combined_cor_df <- do.call(rbind, correlation_list)
+
+# Add cell type and Histology as columns
+# Extract the cell type from Celltype_Pair
+combined_cor_df$cell_type <- gsub("_vs.*", "", combined_cor_df$Celltype_Pair)
+
+# add histo feature classification
+spread_df <- spread_df %>%
+  mutate(main_histology = case_when(
+    grepl("^Epi|GG", Histology) ~ "Epithelial",
+    grepl("^Stroma", Histology) ~ "Stromal",
+    grepl("^Inflammation", Histology) ~ "Inflammation",
+    grepl("^Vessel", Histology) ~ "Vessel",
+    grepl("^Adipose", Histology) ~ "Adipose",
+    grepl("^Nerve", Histology) ~ "Nerve"))
+
+# Prepare the correlation matrix
+cor_matrix <- combined_cor_df %>% dplyr::select(-P_Value)
+
+# Assuming your correlation matrix is named cor_matrix
+cor_matrix <- cor_matrix %>%
+  select(-cell_type) %>%
+  pivot_wider(names_from = Celltype_Pair, values_from = Correlation)   %>%
+  tibble::remove_rownames() %>% column_to_rownames(var = "Histology")
+
+# Prepare the p-value matrix
+p_value_matrix <- combined_cor_df %>% dplyr::select(Celltype_Pair, P_Value, Histology) # %>% tibble::remove_rownames() %>% column_to_rownames(var = "sample_id")
+
+# Assuming your correlation matrix is named cor_matrix
+p_value_matrix_wide <- p_value_matrix %>%
+  pivot_wider(names_from = Celltype_Pair, values_from = P_Value) %>%
+  tibble::remove_rownames() %>% column_to_rownames(var = "Histology")
+
+# # Count the total number of tests
+# m <- 30*6
+# 
+# # Apply Bonferroni correction to each element in the matrix
+# corrected_matrix <- p_value_matrix_wide * m
+# 
+# # Ensure that the corrected p-values are capped at 1
+# corrected_matrix[corrected_matrix > 1] <- 1
+
+# Function to replace p-values with asterisks
+replace_with_asterisks <- function(p_value) {
+  if (p_value < 0.0001) {
+    return("***")
+  } else if (p_value < 0.001) {
+    return("**")
+  } else if (p_value < 0.01) {
+    return("*")
+  } else {
+    return("")
+  }
+}
+
+# Apply the function to the p-value matrix
+asterisk_matrix <- apply(p_value_matrix_wide, 2, function(column) sapply(column, replace_with_asterisks))
+
+t_cor_matrix <- t(cor_matrix)
+t_asterisk_matrix <- t(asterisk_matrix)
+
+# remove repetitive comparisons, e.g., CAFs_vs_SMCs and SMCs_vs_CAFs - only keep one of them in ----
+# Get the rownames of t_cor_matrix
+rownames <- rownames(t_cor_matrix)
+
+# Function to check if a string has a reversed counterpart in a vector
+has_reversed_counterpart <- function(string, vector) {
+ split_string <- unlist(strsplit(string, "_vs_"))
+ reversed_string <- paste(rev(split_string), collapse = "_vs_")
+ any(reversed_string == vector)
+}
+
+# Identify row names with reversed counterparts
+reversed_patterns <- sapply(rownames, has_reversed_counterpart, vector = rownames)
+
+# Identify paired reverse strings
+paired_reverse_strings <- rownames[reversed_patterns]
+
+# Create a logical vector to keep only one element from each pair
+keep_first_in_pair <- logical(length(paired_reverse_strings))
+
+for (i in seq_along(paired_reverse_strings)) {
+  pair <- paired_reverse_strings[i]
+  reverse_pair <- paste(rev(strsplit(pair, "_")[[1]]), collapse = "_")
+  if (pair < reverse_pair) {
+    keep_first_in_pair[i] <- TRUE
+  } else if (pair == reverse_pair) {
+    keep_first_in_pair[i] <- TRUE
+  }
+}
+
+kept_pairs <- paired_reverse_strings[keep_first_in_pair]
+kept_patterns <- reversed_patterns[!reversed_patterns]
+kept_patterns <- names(kept_patterns)
+
+# rows to keep 
+keep_rows <- c(kept_pairs, kept_patterns)
+filtered_rownames <- rownames[rownames %in% keep_rows]
+
+# Now you can subset t_cor_matrix using the filtered rownames
+filtered_t_cor_matrix <- t_cor_matrix[filtered_rownames, ]
+
+# now filter t_asterisk_matrix to match filtered_t_cor_matrix
+# Filter t_asterisk_matrix based on filtered_rownames
+filtered_t_asterisk_matrix <- t_asterisk_matrix[filtered_rownames, ]
+
+# get info from spread_df (should already be filtered, but just in case any samples have squeezed through, somehow)
+anno_df <- spread_df %>% filter(Histology %in% all_of(colnames(filtered_t_cor_matrix))) %>% distinct(Histology, main_histology) %>% remove_rownames() %>% column_to_rownames("Histology")
+# anno_cols <- list(type = type_cols_darker)
+
+# Create the heatmap using pheatmap
+p <- pheatmap(
+  filtered_t_cor_matrix,
+  annotation = anno_df,
+  # annotation_colours = anno_cols,
+  display_numbers = filtered_t_asterisk_matrix,
+  fontsize_number = 8,  # Adjust font size for better visibility
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  col = colorRampPalette(c("dodgerblue4", "white", "red4"))(50),
+  breaks = seq(min(combined_cor_df$Correlation), max(combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
+  na_col = "gray",
+  border_color = NA,
+  cellwidth = 14, cellheight = 14, 
+  main = "Pearson correlation heatmap\nCell2Location - cell type major",
+  ylab = "Cell type Pair",
+  xlab = "Sample IDs",
+  scale = "none"
+)
+
+# Print the heatmap plot
+pdf(paste0(figDir, "celltype_major_cell2location_histology.pdf"), width = 15, height=15)
+print(p)
+dev.off()
+
+# Create the heatmap using pheatmap
+p <- pheatmap(
+  filtered_t_cor_matrix,
+  annotation = anno_df,
+  # annotation_colours = anno_cols,
+  display_numbers = filtered_t_asterisk_matrix,
+  fontsize_number = 8,  # Adjust font size for better visibility
+  cluster_rows = TRUE,
+  cluster_cols = TRUE,
+  col = colorRampPalette(c("dodgerblue4", "white", "red4"))(50),
+  breaks = seq(min(combined_cor_df$Correlation), max(combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
+  na_col = "gray",
+  border_color = NA,
+  cellwidth = 14, cellheight = 14, 
+  main = "Pearson correlation heatmap\nCell2Location - cell type major",
+  ylab = "Cell type Pair",
+  xlab = "Sample IDs",
+  scale = "none"
+)
+
+# Print the heatmap plot
+pdf(paste0(figDir, "celltype_major_cell2location_clustered_histology.pdf"), width = 15, height=15)
+print(p)
+dev.off()
 
 # SAVE LOGS -----------------------------------------------------------------
 
