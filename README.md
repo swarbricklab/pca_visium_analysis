@@ -28,7 +28,7 @@ Data analysed:
 - 03a_cell_type_mapping.py: Map cell types (cell type minor)  
 - 04_visualize_results.py: Visualize results (cell type minor)  
 - 05_train_model_major.py: Train cell2location model on PCa scRNA-seq reference (cell type major)  
-- 06a_cell_type_mapping)nahir.py: Map cell types (cell type major)  
+- 06a_cell_type_mapping_major.py: Map cell types (cell type major)  
 - 07_visualize_results_major.py: Visualize results (cell type major)
 - 08_visualise_proportions_minor.R
 - 09_visualise_proportions_major.R
