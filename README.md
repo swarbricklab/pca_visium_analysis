@@ -3,8 +3,8 @@ Repo for analysis of the PCa Visium dataset
 
 Data analysed:  
 - In-house Visium samples  
- - Batch 1: 2 samples - Visium FFPE V1  
- - Batch 2: 8 samples - Visium FFPE V2  
+  - Batch 1: 2 samples - Visium FFPE V1  
+  - Batch 2: 8 samples - Visium FFPE V2  
 - Published data from Joakim's lab (PMID 35948798)    
 
 **config**  
