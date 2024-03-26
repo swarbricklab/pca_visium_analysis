@@ -7,17 +7,20 @@ Data analysed:
   - Batch 2: 8 samples - Visium FFPE V2  
 - Published data from Joakim's lab (PMID 35948798)    
 
-**config**  
+
+Brief info on directories below:  
+
+**config/**  
 - Contains parameter files for each script & other ad hoc files  
 
-**resources**  
+**resources/**  
 - Contains published PCa spatial data from Joakim's Nature paper (PMID 35948798)  
 
-**results**  
+**results/**  
 - Script outputs are saved to corresponding results dir  
 
 
-**scripts**  
+**scripts/**  
 
 01_preprocessing  
 - Initial pre-processing (without filtering spots), QC & visualisation
