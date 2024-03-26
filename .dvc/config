@@ -4,3 +4,4 @@
     remote = pca_visium_analysis
 ['remote "pca_visium_analysis"']
     url = ssh://gadi-dm.nci.org.au/g/data/a56/dvc/remotes/pca_visium_analysis
+    jobs = 5
