@@ -187,7 +187,7 @@ calculate_correlations <- function(df, sample_id, celltype) {
 }
 
 # List of cell types of interest (lineage 1 comparison to all other cell types at minor level)
-interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_of_interest_v2.csv")
+interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_of_interest_v3.csv")
 cell_types_of_interest <- unique(interactions_df$celltype_1)
 
 # Create an empty list to store the correlation data frames for each cell type
@@ -319,7 +319,28 @@ filtered_t_asterisk_matrix <- t_asterisk_matrix[filtered_rownames, ]
 
 # get info from spread_df (should already be filtered, but just in case any samples have squeezed through, somehow)
 anno_df <- spread_df %>% filter(sample_id %in% all_of(colnames(filtered_t_cor_matrix))) %>% distinct(sample_id, type) %>% remove_rownames() %>% column_to_rownames("sample_id")
-anno_cols <- list(type = type_cols_darker)
+# actuall add sample_id as a column again
+anno_df$sample_id <- rownames(anno_df)
+
+anno_cols <- list(
+    type = c("cancer" = "#9065cf",
+             "adj_benign" =  "#E0B57C"),
+    sample_id = c("20216-1" = "#E69F00",
+                    "19617-2" = "#56B4E9",
+                    "20111-2" = "#009E73",
+                    "20033" = "#F0E442",
+                    "20130-2" = "#0072B2",
+                    "20153-2" = "#D55E00")
+    )
+
+
+# order the matrix by adjacent benign samples, followed by cancer
+desired_order = c('20111-2', '20153-2', '20130-2', '20033', '20216-1', '19617-2')
+
+# reindex the df with the desired order of columns
+filtered_t_cor_matrix = filtered_t_cor_matrix[, desired_order]
+filtered_t_asterisk_matrix = filtered_t_asterisk_matrix[, desired_order]
+
 
 # Create the heatmap using pheatmap
 p <- pheatmap(
@@ -342,7 +363,7 @@ p <- pheatmap(
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "celltype_minor_cell2location_v2.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "celltype_minor_cell2location_v3.pdf"), width = 15, height=15)
 print(p)
 dev.off()
 
@@ -367,7 +388,7 @@ p <- pheatmap(
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "celltype_minor_cell2location_clustered_v2.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "celltype_minor_cell2location_clustered_v3.pdf"), width = 15, height=15)
 print(p)
 dev.off()
 
@@ -432,7 +453,7 @@ calculate_correlations_histo <- function(df, histology, celltype) {
 }
 
 # List of cell types of interest (lineage 1 comparison to all other cell types at minor level)
-interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_of_interest_v2.csv")
+interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_of_interest_v3.csv")
 cell_types_of_interest <- unique(interactions_df$celltype_1)
 
 # Create an empty list to store the correlation data frames for each cell type
@@ -573,6 +594,13 @@ filtered_t_asterisk_matrix <- t_asterisk_matrix[filtered_rownames, ]
 anno_df <- spread_df %>% filter(Histology %in% all_of(colnames(filtered_t_cor_matrix))) %>% distinct(Histology, main_histology) %>% remove_rownames() %>% column_to_rownames("Histology")
 # anno_cols <- list(type = type_cols_darker)
 
+# order the matrix by histology features
+desired_order = c('Epi_Benign', 'Epi_Benign_transitional', 'GG3', 'GG4', 'GG4_Cribriform', 'Inflammation', 'Stroma_prostatic', 'Stroma_extraprostatic', 'Vessel', 'Nerve', 'Adipose')
+
+# reindex the df with the desired order of columns
+filtered_t_cor_matrix = filtered_t_cor_matrix[, desired_order]
+filtered_t_asterisk_matrix = filtered_t_asterisk_matrix[, desired_order]
+
 # Create the heatmap using pheatmap
 p <- pheatmap(
   filtered_t_cor_matrix,
@@ -594,7 +622,7 @@ p <- pheatmap(
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "celltype_minor_cell2location_histology_v2.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "celltype_minor_cell2location_histology_v3.pdf"), width = 15, height=15)
 print(p)
 dev.off()
 
@@ -619,7 +647,7 @@ p <- pheatmap(
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "celltype_minor_cell2location_clustered_histology_v2.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "celltype_minor_cell2location_clustered_histology_v3.pdf"), width = 15, height=15)
 print(p)
 dev.off()
 
