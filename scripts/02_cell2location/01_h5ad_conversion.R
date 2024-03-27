@@ -48,7 +48,7 @@ system(paste0("mkdir -p ",figDir))
 system(paste0("mkdir -p ",tabDir))
 
 # paths to objects
-inFile = paste0("/share/ScratchGeneral/evaapo/projects/PCa/results/20230714_collate_annotation/02_update_annotation/rObjects/PCa_atlas_annotated_Oct23_update.rds")
+inFile = paste0("/share/ScratchGeneral/evaapo/projects/PCa/results/20230714_collate_annotation/03_combine_minor_and_malignant/rObjects/PCa_atlas_annotated_Mar24_update.rds")
 
 # START ----------------------------------------------------------------------
 # read in merged object 
@@ -56,7 +56,7 @@ cells <- readRDS(inFile)
 
 # keep only relevant meta data
 to_keep <- c("orig.ident", "barcode", "nCount_RNA", "nFeature_RNA", "percent.mito", "sample_id", "sample",
-  "ERG_status_merged", "malignant_anno_merged", "celltype_major_v2", "celltype_minor_v2", "celltype_minor_v2", "celltype_subset_v2", "type")
+  "ERG_status_merged", "malignant_anno_merged", "celltype_major_v2", "celltype_minor_v2", "celltype_minor_v2", "celltype_subset_v2", "celltype_minor_mal", "type")
 
 to_remove <- cells@meta.data[, !(colnames(cells@meta.data) %in% to_keep)]
 meta_to_remove <- names(to_remove)
