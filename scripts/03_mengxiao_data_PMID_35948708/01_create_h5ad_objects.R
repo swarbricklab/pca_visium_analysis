@@ -42,6 +42,7 @@ figDir=paste0(resultDir, "figures/")
 annDataDir=paste0(projectDir, "pca_visium_analysis/data/PMID_35948708/filtered_feature_bc_matrix/")
 
 # ensure output directories exist
+system(paste0("mkdir -p ",projectDir))
 system(paste0("mkdir -p ",resultDir))
 system(paste0("mkdir -p ",rObjectDir))
 system(paste0("mkdir -p ",figDir))
@@ -92,13 +93,13 @@ print(p)
 dev.off()
 
 # now convert to .h5ad objects
-annData_file <- paste0(annDataDir, "/", sample_id, "_raw_feature_bc_matrix.h5ad")
+annData_file <- paste0(annDataDir, "/", sample_id, "_filtered_feature_bc_matrix.h5ad")
 
-if(!file.exists(paste0(annDataDir, "/", sample_id, "_raw_feature_bc_matrix.h5ad"))){
+if(!file.exists(paste0(annDataDir, "/", sample_id, "filtered_feature_bc_matrix.h5ad"))){
 
   # convert to h5ad object
   # intermediary object
-  SaveH5Seurat(seurat, filename = paste0(annDataDir, sample_id, "_raw_feature_bc_matrix.h5Seurat"), overwrite=TRUE)
+  SaveH5Seurat(seurat, filename = paste0(annDataDir, sample_id, "_filtered_feature_bc_matrix.h5Seurat"), overwrite=TRUE)
 
   # Creating h5Seurat file for version 3.1.5.9900
   # Adding counts for RNA
@@ -107,7 +108,7 @@ if(!file.exists(paste0(annDataDir, "/", sample_id, "_raw_feature_bc_matrix.h5ad"
   # Adding feature-level metadata for RNA
   
   # convert
-  Convert(paste0(annDataDir, sample_id, "_raw_feature_bc_matrix.h5Seurat"), dest = "h5ad", filename = paste0(annDataDir, "/", sample_id, "_raw_feature_bc_matrix.h5ad"), overwrite=TRUE)
+  Convert(paste0(annDataDir, sample_id, "_filtered_feature_bc_matrix.h5Seurat"), dest = "h5ad", filename = paste0(annDataDir, "/", sample_id, "_filtered_feature_bc_matrix.h5ad"), overwrite=TRUE)
   
   # Seurat to .h5ad ------------------------------------------------------------
   

@@ -9,3 +9,10 @@ A1,A1_20033,20033,20033,cancer,2,2941,V12F28-089
 B1,B1_20111,20111-2,20111,adj_benign,2,2213,V12F28-089
 C1,C1_20130_C1,20130-1,20130,cancer,2,2180,V12F28-089
 D1,D1_20130_C2,20130-2,20130,adj_benign,2,1477,V12F28-089
+,H1_2,H1_2,H1_2,cancer,mengxiao,,
+,H1_4,H1_4,H1_4,cancer,mengxiao,,
+,H1_5,H1_5,H1_5,cancer,mengxiao,,
+,H2_1,H2_1,H2_1,cancer,mengxiao,,
+,H2_2,H2_2,H2_2,cancer,mengxiao,,
+,H2_5,H2_5,H2_5,cancer,mengxiao,,
+,V1_2,V1_2,V1_2,adj_benign,mengxiao,,
