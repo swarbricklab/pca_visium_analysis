@@ -26,7 +26,7 @@ repo="pca_visium_analysis"
 
 # rerun directory - trying to organise PCa analysis
 exp = "02_cell2location"
-analysis = "11_colocalisation_minor"
+analysis = "15_colocalisation_minor_mal"
 
 # directory structure
 resultDir=paste0(projectDir, repo, "/results/", exp, "/", analysis, "/")
@@ -89,7 +89,7 @@ for (sample_id in unique(samples_config_sub$sample_id)){
   print(sample_id)
 
   # path to cell2location (Cell type major) - per sample
-  prop_df <- read.csv(paste0("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/02_cell2location/03a_cell_type_mapping/", sample_id, "/objects/q05_cell_abundance_w_sf.csv"))
+  prop_df <- read.csv(paste0("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/02_cell2location/13a_cell_type_mapping_minor_mal/", sample_id, "/objects/q05_cell_abundance_w_sf.csv"))
   prop_df$sample_id <- sample_id
 
   # Extracting the type corresponding to the sample_id
@@ -109,7 +109,7 @@ exclude_cols <- c("Barcode", "sample_id", "type")
 # Extract column names not found in exclude_cols
 celltypes <- names(df)[!names(df) %in% exclude_cols]
 
-df_tidy <- df %>% pivot_longer(celltypes, names_to = "celltype_major_v2", values_to = "c2l_value")
+df_tidy <- df %>% pivot_longer(celltypes, names_to = "celltype_minor_mal", values_to = "c2l_value")
 
 # Count how many unique barcodes per sample_id
 barcode_counts <- df_tidy %>%
@@ -135,7 +135,7 @@ barcode_counts <- df_tidy %>%
 # Merge based on both sample_id and Barcode
 merged_df <- inner_join(df_tidy, histo_df, by = c("sample_id", "Barcode"))
 
-spread_df <- spread(merged_df, key = celltype_major_v2, value = c2l_value)
+spread_df <- spread(merged_df, key = celltype_minor_mal, value = c2l_value)
 
 # exclude "Exclude" histology from the analysis - this will be spots outside of the tissue, etc
 spread_df <- spread_df %>% filter(Histology != "Exclude")
@@ -187,7 +187,7 @@ calculate_correlations <- function(df, sample_id, celltype) {
 }
 
 # List of cell types of interest (lineage 1 comparison to all other cell types at minor level)
-interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_of_interest_v3.csv")
+interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_mal_interactions_of_interest_v2.csv")
 cell_types_of_interest <- unique(interactions_df$celltype_1)
 
 # Create an empty list to store the correlation data frames for each cell type
@@ -203,6 +203,10 @@ for (cell_type in cell_types_of_interest) {
     
     # Calculate correlations for the current cell type and sample ID
     correlation_df <- calculate_correlations(spread_df, sample_id, cell_type)
+
+    # Add cell type and sample_id as columns
+    correlation_df$sample_id <- sample_id
+    correlation_df$cell_type <- cell_type
     
     # Store the correlation dataframe in the list
     correlation_list[[paste(cell_type, sample_id, sep = "_")]] <- correlation_df
@@ -211,13 +215,6 @@ for (cell_type in cell_types_of_interest) {
 
 # Combine all correlation data frames into a single data frame
 combined_cor_df <- do.call(rbind, correlation_list)
-
-# Add cell type and sample_id as columns
-combined_cor_df$cell_type <- gsub("_\\d+.*", "", rownames(combined_cor_df))
-combined_cor_df$sample_id <- gsub("[A-Za-z_]+_", "", rownames(combined_cor_df))
-# remove the decimal part in the sample_id column
-combined_cor_df$sample_id <- sub("\\..*$", "", combined_cor_df$sample_id)
-
 
 # Extract the interaction patterns from interactions_df
 interaction_patterns <- paste(interactions_df$celltype_1, "vs", interactions_df$celltype_2, sep = "_")
@@ -356,14 +353,14 @@ p <- pheatmap(
   na_col = "gray",
   border_color = NA,
   cellwidth = 14, cellheight = 14, 
-  main = "Pearson correlation heatmap",
+  main = "Pearson correlation heatmap\nCell2Location - cell type minor + malignant ",
   ylab = "Cell type Pair",
   xlab = "Sample IDs",
   scale = "none"
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "celltype_minor_cell2location_v3.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "celltype_minor_mal_cell2location_v2.pdf"), width = 15, height=15)
 print(p)
 dev.off()
 
@@ -381,14 +378,14 @@ p <- pheatmap(
   na_col = "gray",
   border_color = NA,
   cellwidth = 14, cellheight = 14, 
-  main = "Pearson correlation heatmap",
+  main = "Pearson correlation heatmap\nCell2Location - cell type minor + malignant ",
   ylab = "Cell type Pair",
   xlab = "Sample IDs",
   scale = "none"
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "celltype_minor_cell2location_clustered_v3.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "celltype_minor_mal_cell2location_clustered_v2.pdf"), width = 15, height=15)
 print(p)
 dev.off()
 
@@ -397,9 +394,9 @@ dev.off()
 # RATHER THAN SAMPLE ID -----------------------------------------------------
 # ---------------------------------------------------------------------------
 
-# reload/create df
+# reload/recreate df
 
-spread_df <- spread(merged_df, key = celltype_major_v2, value = c2l_value)
+spread_df <- spread(merged_df, key = celltype_minor_mal, value = c2l_value)
 
 # exclude "Exclude" histology from the analysis - this will be spots outside of the tissue, etc
 spread_df <- spread_df %>% filter(Histology != "Exclude")
@@ -453,7 +450,6 @@ calculate_correlations_histo <- function(df, histology, celltype) {
 }
 
 # List of cell types of interest (lineage 1 comparison to all other cell types at minor level)
-interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_of_interest_v3.csv")
 cell_types_of_interest <- unique(interactions_df$celltype_1)
 
 # Create an empty list to store the correlation data frames for each cell type
@@ -471,6 +467,7 @@ for (cell_type in cell_types_of_interest) {
     correlation_df <- calculate_correlations_histo(spread_df, histology, cell_type)
 
     correlation_df$Histology <- histology
+    correlation_df$cell_type <- cell_type
     
     # Store the correlation dataframe in the list
     correlation_list[[paste(cell_type, histology, sep = "_")]] <- correlation_df
@@ -479,10 +476,6 @@ for (cell_type in cell_types_of_interest) {
 
 # Combine all correlation data frames into a single data frame
 combined_cor_df <- do.call(rbind, correlation_list)
-
-# Add cell type and Histology as columns
-# Extract the cell type from Celltype_Pair
-combined_cor_df$cell_type <- gsub("_vs.*", "", combined_cor_df$Celltype_Pair)
 
 # add histo feature classification
 spread_df <- spread_df %>%
@@ -615,14 +608,14 @@ p <- pheatmap(
   na_col = "gray",
   border_color = NA,
   cellwidth = 14, cellheight = 14, 
-  main = "Pearson correlation heatmap\nCell2Location - cell type minor",
+  main = "Pearson correlation heatmap\nCell2Location - cell type minor + malignant",
   ylab = "Cell type Pair",
   xlab = "Sample IDs",
   scale = "none"
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "celltype_minor_cell2location_histology_v3.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "celltype_minor_mal_cell2location_histology_v2.pdf"), width = 15, height=15)
 print(p)
 dev.off()
 
@@ -640,14 +633,14 @@ p <- pheatmap(
   na_col = "gray",
   border_color = NA,
   cellwidth = 14, cellheight = 14, 
-  main = "Pearson correlation heatmap\nCell2Location - cell type minor",
+  main = "Pearson correlation heatmap\nCell2Location - cell type minor + malignant ",
   ylab = "Cell type Pair",
   xlab = "Sample IDs",
   scale = "none"
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "celltype_minor_cell2location_clustered_histology_v3.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "celltype_minor_mal_ell2location_clustered_histology_v2.pdf"), width = 15, height=15)
 print(p)
 dev.off()
 
@@ -655,6 +648,3 @@ dev.off()
 
 # save sessionInfo
 writeLines(capture.output(sessionInfo()), paste0(resultDir, "sessionInfo.txt"))
-
-# # full object
-# cells <- readRDS("/share/ScratchGeneral/evaapo/projects/PCa/results/20230714_collate_annotation/02_update_annotation/rObjects/PCa_atlas_annotated_Oct23_update.rds")
