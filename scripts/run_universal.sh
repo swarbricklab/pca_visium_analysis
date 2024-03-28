@@ -18,8 +18,8 @@ sample_id=$6
 environment=$7
 
 # Paths to downstream scripts
-h5ad_dir=$8
-model_dir=$9
+#h5ad_dir=$8
+#model_dir=$9
 
 # load environment
 conda activate "$environment"
@@ -32,5 +32,5 @@ $function_script_file \
     --exp $exp \
     --analysis $analysis \
     --sample_id $sample_id \
-    --h5ad_dir $h5ad_dir \
-    --model_dir $model_dir \
+   ###--h5ad_dir $h5ad_dir \
+   ###--model_dir $model_dir \
