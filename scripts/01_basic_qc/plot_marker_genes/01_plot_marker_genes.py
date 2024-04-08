@@ -109,7 +109,8 @@ coords = auto_crop_scanpy(adata, border_size=0.1)
 spot_size = 1.5
 
 # --- Read in gene list
-gene_file = 'marker_genes.csv'
+# gene_file = 'marker_genes.csv'
+gene_file = 'Top_30_pnCAFs_vs_PNS_glial_tidy_manual.csv'
 gene_dir = os.path.join(project_dir, 'resources', 'gene_lists')
 
 gene_table = pd.read_csv(os.path.join(gene_dir, gene_file))
@@ -221,4 +222,3 @@ print(f'Saving plot as {filename} in {out_dir}')
 save_multi_image(os.path.join(out_dir, filename))
 
 print("Script succesfully completed")
-
