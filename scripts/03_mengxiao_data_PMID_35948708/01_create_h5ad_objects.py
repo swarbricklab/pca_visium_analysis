@@ -37,7 +37,7 @@ os.makedirs(h5ad_dir, exist_ok=True)
 # Define the directory path for the current sample
 # sample_ids = ["H1_2", "H1_4", "H1_5", "H2_1", "H2_2", "H2_5", "V1_2"]
 
-sample_id = "V1_2"
+sample_id = "H1_2"
 inDir = os.path.join('/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/resources/published_data/PMID_35948708/Count_matrices/Patient_1/Visium_with_annotation/', sample_id)
 
 # Read the data
@@ -88,6 +88,15 @@ adata_mengxiao.uns['spatial'][library_id]['images'][image_key] = img
 # Plot spatial with transformed image
 sc.pl.spatial(adata_mengxiao, color='PCA3', vmax='p95')  # scale.factor = 1, with original image
 plt.savefig(os.path.join(figDir, sample_id + '_final_position.pdf'), bbox_inches='tight')
+
+# add histopath annotations
+histo_annotations = pd.read_csv(os.path.join(inDir, sample_id + "_Final_Consensus_Annotations.csv"), header=None, index_col=0)
+adata_mengxiao.obs_names
+adata_mengxiao.obs['Histology'] = histo_annotations
+
+# Plot with histopath annotations
+sc.pl.spatial(adata_mengxiao, color='Histology', vmax='p95')  # scale.factor = 1, with original image
+plt.savefig(os.path.join(figDir, sample_id + '_histology.pdf'), bbox_inches='tight')
 
 adata_file = sample_id + "_raw.h5ad"
 adata_mengxiao.write(os.path.join(h5ad_dir, 'raw', adata_file))
