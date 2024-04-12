@@ -110,7 +110,13 @@ spot_size = 1.5
 
 # --- Read in gene list
 # gene_file = 'marker_genes.csv'
-gene_file = 'Top_30_pnCAFs_vs_PNS_glial_tidy_manual.csv'
+# gene_file = 'Top_30_pnCAFs_vs_PNS_glial_tidy_manual.csv'
+# gene_file = 'Top_30_pnCAFs_vs_PNS_glial_tidy_manual_includes_pnCAF_cepo_genes.csv'
+# gene_file = "top_cepo_50_celltype_major_temp_manual.csv"
+# gene_file = "top_cepo_10ish_celltype_major_temp_manual.csv"
+# gene_file = "Filtered_FindAllMarkers_top30_celltype_major_temp.csv"
+gene_file = "top_cepo_10ish_noCDH19_celltype_major_temp_manual.csv"
+
 gene_dir = os.path.join(project_dir, 'resources', 'gene_lists')
 
 gene_table = pd.read_csv(os.path.join(gene_dir, gene_file))
@@ -220,5 +226,55 @@ os.makedirs(out_dir, exist_ok=True)
 
 print(f'Saving plot as {filename} in {out_dir}')
 save_multi_image(os.path.join(out_dir, filename))
+
+
+# ----------------------------
+# try scoring genes for pnCAFs and Glial cells (PNS_glial) - all
+
+# PNS_glial
+subset_gene_table = gene_table[gene_table['cell_type'] == 'PNS_glial']
+Glial_gene_list = subset_gene_table['gene'].values
+sc.tl.score_genes(adata = adata, gene_list = Glial_gene_list, ctrl_size=50, gene_pool=None, n_bins=25, score_name='PNS_glial_score', random_state=0, copy=False, use_raw=None)
+
+# Plot spatial plots for PNS_glial_score
+# spot_size = 100
+sc.pl.spatial(adata, color='PNS_glial_score',  title=f'{sample_id} - PNS-glial', bw=False, alpha_img=0.5, cmap=cmap_adj)
+plt.savefig(os.path.join(out_dir, sample_id + '_PNS_glial_score_noCDH19.pdf'))
+plt.close()
+
+# pnCAFs
+subset_gene_table = gene_table[gene_table['cell_type'] == 'pnCAFs']
+pnCAFs_gene_list = subset_gene_table['gene'].values
+sc.tl.score_genes(adata = adata, gene_list = pnCAFs_gene_list, ctrl_size=50, gene_pool=None, n_bins=25, score_name='pnCAFs_score', random_state=0, copy=False, use_raw=None)
+
+sc.pl.spatial(adata, color='pnCAFs_score', title=f'{sample_id} - pnCAFs', bw=False, alpha_img=0.5, cmap=cmap_adj)
+plt.savefig(os.path.join(out_dir, sample_id + '_pnCAFs_score_noCDH19.pdf'))
+plt.close()
+
+# NPF like (out of curiosity)
+subset_gene_table = gene_table[gene_table['cell_type'] == 'NPF_like']
+pnCAFs_gene_list = subset_gene_table['gene'].values
+sc.tl.score_genes(adata = adata, gene_list = pnCAFs_gene_list, ctrl_size=50, gene_pool=None, n_bins=25, score_name='NPF_score', random_state=0, copy=False, use_raw=None)
+
+sc.pl.spatial(adata, color='NPF_score', title=f'{sample_id} - NPF', bw=False, alpha_img=0.5, cmap=cmap_adj)
+plt.savefig(os.path.join(out_dir, sample_id + '_NPF_score_noCDH19.pdf'))
+plt.close()
+
+
+# # pnCAFs - cepo (N.B. derived by comparison to other CAFs! will fix this)
+# subset_gene_table = gene_table[gene_table['cell_type'] == 'pnCAFs_cepo']
+# pnCAFs_gene_list = subset_gene_table['gene'].values
+# sc.tl.score_genes(adata = adata, gene_list = pnCAFs_gene_list, ctrl_size=50, gene_pool=None, n_bins=25, score_name='pnCAFs_cepo_score', random_state=0, copy=False, use_raw=None)
+# 
+# sc.pl.spatial(adata, color='pnCAFs_score', title=f'{sample_id} - pnCAFs_cepo', bw=False, alpha_img=0.5, cmap=cmap_adj)
+# plt.savefig(os.path.join(out_dir, sample_id + '_pnCAFs_cepo_score.pdf'))
+# plt.close()
+
+# save values as csv file ----
+selected_columns = ['PNS_glial_score', 'pnCAFs_score', 'NPF_score']  # Replace with actual column names
+score_df = pd.DataFrame(adata.obs[selected_columns])
+score_df['sample_id'] = sample_id
+
+score_df.to_csv(os.path.join(out_dir, sample_id + "_PNS_glial_pnCAF_scores_noCDH19.csv"), index=False)
 
 print("Script succesfully completed")
