@@ -1,0 +1,8 @@
+sample_name,sample_id,patient_id,type,batch
+H1_2,H1_2,Patient_1,cancer,mengxiao
+H1_4,H1_4,Patient_1,cancer,mengxiao
+H1_5,H1_5,Patient_1,cancer,mengxiao
+H2_1,H2_1,Patient_1,cancer,mengxiao
+H2_2,H2_2,Patient_1,cancer,mengxiao
+H2_5,H2_5,Patient_1,cancer,mengxiao
+V1_2,V1_2,Patient_1,adj_benign,mengxiao
