@@ -1,5 +1,5 @@
 outs:
-- md5: fba411b3a347fa52598d94fec6d328cc.dir
-  size: 526969150
-  nfiles: 21
+- md5: a0f15fdc2c869cf712835c4893666361.dir
+  size: 1266414273
+  nfiles: 284
   path: marker_genes

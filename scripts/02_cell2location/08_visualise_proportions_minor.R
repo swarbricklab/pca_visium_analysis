@@ -30,7 +30,7 @@ repo="pca_visium_analysis"
 
 # rerun directory - trying to organise PCa analysis
 exp = "02_cell2location"
-analysis = "08_visualise_proportions"
+analysis = "08_visualise_proportions_minor"
 
 # directory structure
 resultDir=paste0(projectDir, repo, "/results/", exp, "/", analysis, "/")
@@ -49,7 +49,7 @@ system(paste0("mkdir -p ",tabDir))
 # read in histopath data as a df ----------
 
 # link to histo annotations (copied manually from Dropbox) - only 6 files have it:
-histo_path <- paste0(projectDir, "/", repo, "/resources/cell2location/20240318_reviewed_histo_annotation/")
+histo_path <- paste0(projectDir, "/", repo, "/data/20240318_reviewed_histo_annotation_FFPE_v1/")
 
 histo_df <- NULL
 
@@ -301,7 +301,7 @@ dev.off()
 
 # now plot populations of interest ----
 
-# group glial cells into PNS_glial & sum the c2l values -
+# group glial cells into PNS_glial & sum the c2l values - TO DO: this needs to be redone!
 merged_df_v2 <- merged_df %>%
   mutate(celltype_minor_v2 = case_when(
     grepl("Glial_cells_", celltype_minor_v2) ~ "PNS_glial",
@@ -344,6 +344,135 @@ p <- ggplot(df_plot, aes(x = Histology, y = celltype_proportion, fill = celltype
 pdf(paste0(figDir, "cell2location_anno_per_histo_region_per_sample_of_interest_20_percent.pdf"), width=9)
 print(p)
 dev.off()  
+
+
+# 3 ------------
+# plots for talk
+## show proportions of CAFs and SMCs per core type
+
+celltype_prop_df <- merged_df_v2 %>%
+  dplyr::group_by(Histology, Barcode, celltype_minor_v2, type) %>%
+  dplyr::summarise(c2l_cell_number = sum(c2l_value)) %>%
+  dplyr::group_by(type, Barcode) %>%
+  dplyr::mutate(total_c2l_cell_number = sum(c2l_cell_number)) %>%
+  dplyr::mutate(celltype_proportion = c2l_cell_number / total_c2l_cell_number) %>%
+  dplyr::select(type, Barcode, celltype_minor_v2, celltype_proportion, Histology) %>%
+  dplyr::filter(celltype_proportion >= 0.05) %>% # only include cell type proportions with a value greater than 10% (0.01)
+  dplyr::filter(Histology != "Exclude") %>%
+  # dplyr::filter(celltype_minor_v2 %in% c("Luminal", "uniCAFs", "NPF_like", "pnCAFs", "whCAFs", "SMC_like", "CAFs_IFN", "pSMCs", "Pericytes", "vSMCs", "Cycling_Epi_Luminal", "Glial_cells_1", "Glial_cells_2", "Glial_cells_3", "Satellite_cells", "Myelinating_Schwann"))
+  # dplyr::filter(celltype_minor_v2 %in% c("Luminal", "uniCAFs", "NPF_like", "pnCAFs", "whCAFs", "SMC_like", "CAFs_IFN", "pSMCs", "Pericytes", "vSMCs", "Cycling_Epi_Luminal", "PNS_glial"))
+  dplyr::filter(celltype_minor_v2 %in% c("Luminal", "uniCAFs", "NPF_like", "pnCAFs", "whCAFs", "SMC_like", "CAFs_IFN", "pSMCs", "Pericytes", "vSMCs", "PNS_glial"))
+
+df_plot <- celltype_prop_df
+
+nice_colors_func <- colorRampPalette(brewer.pal(9, "Set1"))
+nice_colors <- nice_colors_func(11)
+
+p <- ggplot(df_plot, aes(x = type, y = celltype_proportion, fill = celltype_minor_v2)) +
+  geom_bar(position = "fill", stat = "identity") +
+  labs(title = "Cell2Location decon (cell type minor) per Histological region, per Sample",
+       subtitle = " Cell types constituting <5% of a spatial spot are filtered out; showing only cell types of interest",
+       x = "Cell type minor (c2l decon)",
+       y = "Proportions") +
+  scale_fill_manual(values = nice_colors) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+pdf(paste0(figDir, "C2L_per_core_type_5_percent.pdf"), width=5)
+print(p)
+dev.off()
+
+
+## now do this for CAFs and SMCs only ---
+df_plot <- celltype_prop_df %>% dplyr::filter(celltype_minor_v2 %in% c("uniCAFs", "NPF_like", "pnCAFs", "whCAFs", "SMC_like", "CAFs_IFN", "PNS_glial")) # "pSMCs", "Pericytes", "vSMCs"))
+
+nice_colors_func <- colorRampPalette(brewer.pal(9, "Set1"))
+nice_colors <- nice_colors_func(11)
+
+p <- ggplot(df_plot, aes(x = type, y = celltype_proportion, fill = celltype_minor_v2)) +
+  geom_bar(position = "fill", stat = "identity") +
+  labs(title = "Cell2Location decon (cell type minor) per Histological region, per Sample",
+       subtitle = " Cell types constituting <5% of a spatial spot are filtered out; showing only cell types of interest",
+       x = "Cell type minor (c2l decon)",
+       y = "Proportions") +
+  scale_fill_manual(values = nice_colors) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+pdf(paste0(figDir, "C2L_per_core_type_5_percent_no_Epithelial.pdf"), width=5)
+print(p)
+dev.off()
+
+## now plot them per histological region
+
+celltype_prop_df <- merged_df_v2 %>%
+  dplyr::group_by(sample_id, Histology, Barcode, celltype_minor_v2) %>%
+  dplyr::summarise(c2l_cell_number = sum(c2l_value)) %>%
+  dplyr::group_by(sample_id, Histology, Barcode) %>%
+  dplyr::mutate(total_c2l_cell_number = sum(c2l_cell_number)) %>%
+  dplyr::mutate(celltype_proportion = c2l_cell_number / total_c2l_cell_number) %>%
+  dplyr::select(sample_id, Histology, Barcode, celltype_minor_v2, celltype_proportion) %>%
+  dplyr::filter(celltype_proportion >= 0.05) %>% # only include cell type proportions with a value greater than 10% (0.01)
+  dplyr::filter(Histology != "Exclude") %>%
+  # dplyr::filter(celltype_minor_v2 %in% c("Luminal", "uniCAFs", "NPF_like", "pnCAFs", "whCAFs", "SMC_like", "CAFs_IFN", "pSMCs", "Pericytes", "vSMCs", "Cycling_Epi_Luminal", "Glial_cells_1", "Glial_cells_2", "Glial_cells_3", "Satellite_cells", "Myelinating_Schwann"))
+  dplyr::filter(celltype_minor_v2 %in% c("Luminal", "uniCAFs", "NPF_like", "pnCAFs", "whCAFs", "SMC_like", "CAFs_IFN", "pSMCs", "Pericytes", "vSMCs", "PNS_glial"))
+
+df_plot <- celltype_prop_df
+
+nice_colors_func <- colorRampPalette(brewer.pal(9, "Set1"))
+nice_colors <- nice_colors_func(16)
+
+p <- ggplot(df_plot, aes(x = Histology, y = celltype_proportion, fill = celltype_minor_v2)) +
+  geom_bar(position = "fill", stat = "identity") +
+  labs(title = "Cell2Location decon (cell type minor) per Histological region, per Sample",
+       subtitle = " Cell types constituting <5% of a spatial spot are filtered out; showing only cell types of interest",
+       x = "Cell type minor (c2l decon)",
+       y = "Proportions") +
+  scale_fill_manual(values = nice_colors) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+pdf(paste0(figDir, "C2L_histo_regions_5_percent.pdf"), width=9)
+print(p)
+dev.off()  
+
+
+## now plot them per histological region, facet by type??
+
+celltype_prop_df <- merged_df_v2 %>%
+  dplyr::group_by(sample_id, Histology, Barcode, celltype_minor_v2, type) %>%
+  dplyr::summarise(c2l_cell_number = sum(c2l_value)) %>%
+  dplyr::group_by(sample_id, Histology, Barcode) %>%
+  dplyr::mutate(total_c2l_cell_number = sum(c2l_cell_number)) %>%
+  dplyr::mutate(celltype_proportion = c2l_cell_number / total_c2l_cell_number) %>%
+  dplyr::select(sample_id, Histology, Barcode, celltype_minor_v2, celltype_proportion, type) %>%
+  dplyr::filter(celltype_proportion >= 0.05) %>% # only include cell type proportions with a value greater than 10% (0.01)
+  dplyr::filter(Histology != "Exclude") %>%
+  # dplyr::filter(celltype_minor_v2 %in% c("Luminal", "uniCAFs", "NPF_like", "pnCAFs", "whCAFs", "SMC_like", "CAFs_IFN", "pSMCs", "Pericytes", "vSMCs", "Cycling_Epi_Luminal", "Glial_cells_1", "Glial_cells_2", "Glial_cells_3", "Satellite_cells", "Myelinating_Schwann"))
+  dplyr::filter(celltype_minor_v2 %in% c("Luminal", "uniCAFs", "NPF_like", "pnCAFs", "whCAFs", "SMC_like", "CAFs_IFN", "pSMCs", "Pericytes", "vSMCs", "PNS_glial"))
+
+df_plot <- celltype_prop_df
+
+nice_colors_func <- colorRampPalette(brewer.pal(9, "Set1"))
+nice_colors <- nice_colors_func(16)
+
+df_plot$Histology <- factor(df_plot$Histology, levels = c("Epi Benign", "Epi Benign (transitional)",  "GG3", "GG4",  "GG4 Cribriform", "Inflammation", "Stroma prostatic", "Stroma extraprostatic",  "Nerve", "Vessel", "Adipose", ""))
+
+p <- ggplot(df_plot, aes(x = type, y = celltype_proportion, fill = celltype_minor_v2)) +
+  geom_bar(position = "fill", stat = "identity") +
+  labs(title = "Cell2Location decon (cell type minor) per Histological region, per Sample",
+       subtitle = " Cell types constituting <5% of a spatial spot are filtered out; showing only cell types of interest",
+       x = "Cell type minor (c2l decon)",
+       y = "Proportions") +
+  facet_wrap(~as.factor(Histology)) +
+  scale_fill_manual(values = nice_colors) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+pdf(paste0(figDir, "C2L_histo_regions_5_percent_type_facet_test.pdf"), width=9)
+print(p)
+dev.off()  
+
 
 ## calculate proportions per sample (based on barspot proportions)
 # sample_celltype_prop_df <- t %>%

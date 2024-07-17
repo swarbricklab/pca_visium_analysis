@@ -48,7 +48,7 @@ system(paste0("mkdir -p ",figDir))
 system(paste0("mkdir -p ",tabDir))
 
 # paths to objects
-inFile = paste0("/share/ScratchGeneral/evaapo/projects/PCa/results/20230714_collate_annotation/03_combine_minor_and_malignant/rObjects/PCa_atlas_annotated_Mar24_update.rds")
+inFile = paste0("/share/ScratchGeneral/evaapo/projects/PCa/results/20230714_collate_annotation/02_update_annotation/rObjects/PCa_atlas_annotated_Jul24_update.rds")
 
 # START ----------------------------------------------------------------------
 # read in merged object 
@@ -56,7 +56,7 @@ cells <- readRDS(inFile)
 
 # keep only relevant meta data
 to_keep <- c("orig.ident", "barcode", "nCount_RNA", "nFeature_RNA", "percent.mito", "sample_id", "sample",
-  "ERG_status_merged", "malignant_anno_merged", "celltype_major_v2", "celltype_minor_v2", "celltype_minor_v2", "celltype_subset_v2", "celltype_minor_mal", "type")
+  "ERG_status_merged", "malignant_anno_merged", "celltype_major_v2", "celltype_minor_v2", "celltype_subset_v2", "celltype_major_temp", "celltype_minor_mal", "type")
 
 to_remove <- cells@meta.data[, !(colnames(cells@meta.data) %in% to_keep)]
 meta_to_remove <- names(to_remove)
@@ -116,36 +116,36 @@ writeLines(capture.output(sessionInfo()), paste0(resultDir, "sessionInfo.txt"))
 
 # NOTES from 2023 --------
 
-# # go to rObject Dir, open python and check object
-# import scanpy
-# import pandas as pd
-# adata = scanpy.read_h5ad("PCa_merged_filtered.h5ad")
+## go to rObject Dir, open python and check object
+#import scanpy
+#import pandas as pd
+#adata = scanpy.read_h5ad("PCa_merged_filtered.h5ad")
+#
+##adata
+##adata.X
+##adata.raw.X 
+##adata.to_df()
+#
+## check your raw matrix and write a csv file
+#t=adata.raw.X.toarray()
+#pd.DataFrame(data=t, index=adata.obs_names, columns=adata.raw.var_names).to_csv('adata_raw_x.csv')
+
+# sparse matrices don't have a native representation, so would need to be converted to csr format
+# for a quick look, do print(adata.X) or print(adata.raw.X)
+
+# back in R
+
+# a super complicated way to check if the data frame contains integers only
+# library(data.table)
+# test <- fread('adata_raw_x.csv') # fread is much faster than read.csv
+# library(tibble)
+# df <- tibble::column_to_rownames(test, "V1")
 # 
-# #adata
-# #adata.X
-# #adata.raw.X 
-# #adata.to_df()
+# # check for integer
+# is_whole <- function(x) {
+#   all.equal(x, as.integer(x)) # is.integer() checks for integer class, not whole number
+# }
 # 
-# # check your raw matrix and write a csv file
-# t=adata.raw.X.toarray()
-# pd.DataFrame(data=t, index=adata.obs_names, columns=adata.raw.var_names).to_csv('adata_raw_x.csv')
-# 
-# # sparse matrices don't have a native representation, so would need to be converted to csr format
-# # for a quick look, do print(adata.X) or print(adata.raw.X)
-# 
-# # back in R
-# 
-# # a super complicated way to check if the data frame contains integers only
-# # library(data.table)
-# # test <- fread('adata_raw_x.csv') # fread is much faster than read.csv
-# # library(tibble)
-# # df <- tibble::column_to_rownames(test, "V1")
-# # 
-# # # check for integer
-# # is_whole <- function(x) {
-# #   all.equal(x, as.integer(x)) # is.integer() checks for integer class, not whole number
-# # }
-# # 
-# # ts <- data.frame(lapply(df, is_whole))
-# # ts2 <- unlist(ts, use.names=FALSE)
-# # unique(ts2) # all TRUE
+# ts <- data.frame(lapply(df, is_whole))
+# ts2 <- unlist(ts, use.names=FALSE)
+# unique(ts2) # all TRUE

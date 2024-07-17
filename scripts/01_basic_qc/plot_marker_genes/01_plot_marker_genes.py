@@ -5,7 +5,9 @@
 
 
 # --- Define environment
-# env: pca-visium
+# env: eva-pca-visium
+# does not work in git repo, works one dir up (in PCa_Visium)
+# added 'repo' as a variable
 
 # --- Load packages
 import argparse
@@ -57,6 +59,14 @@ parser.add_argument("--gene_file", help="File with gene names to plot") # Not ne
 
 args = vars(parser.parse_args())
 
+## ## ### temp - manual
+## project_dir = os.getcwd()
+## repo = "pca_visium_analysis"
+## res_dir = os.path.join(project_dir, repo, "results")
+## h5ad_dir = os.path.join(project_dir, repo, "data", "anndata_objects")
+## sample_dir = os.path.join(project_dir, repo,  'config')
+## sample_id = "20033"
+## use_data = "log_norm"
 
 # --- Arguments
 data_dir = args["data_dir"]
@@ -65,9 +75,7 @@ h5ad_dir=args["h5ad_dir"]
 sample_id=args["sample_id"]
 
 project_dir=args["project_dir"]
-
 use_data=args["use_data"]
-
 
 # --- Get some info from the sample sheet
 
@@ -115,7 +123,9 @@ spot_size = 1.5
 # gene_file = "top_cepo_50_celltype_major_temp_manual.csv"
 # gene_file = "top_cepo_10ish_celltype_major_temp_manual.csv"
 # gene_file = "Filtered_FindAllMarkers_top30_celltype_major_temp.csv"
-gene_file = "top_cepo_10ish_noCDH19_celltype_major_temp_manual.csv"
+# gene_file = "top_cepo_10ish_noCDH19_celltype_major_temp_manual.csv"
+# gene_file = "top_cepo_10ish_excludes_genes_expressed_in_Glial_cells_manual.csv" ## this is the last
+gene_file = "cepo_10ish_excludes_genes_expressed_in_Glial_cells_manual_add_DCN.csv" ## add DCN to pnCAFs
 
 gene_dir = os.path.join(project_dir, 'resources', 'gene_lists')
 
@@ -231,6 +241,8 @@ save_multi_image(os.path.join(out_dir, filename))
 # ----------------------------
 # try scoring genes for pnCAFs and Glial cells (PNS_glial) - all
 
+plt.figure(figsize=(10, 6))
+
 # PNS_glial
 subset_gene_table = gene_table[gene_table['cell_type'] == 'PNS_glial']
 Glial_gene_list = subset_gene_table['gene'].values
@@ -239,7 +251,7 @@ sc.tl.score_genes(adata = adata, gene_list = Glial_gene_list, ctrl_size=50, gene
 # Plot spatial plots for PNS_glial_score
 # spot_size = 100
 sc.pl.spatial(adata, color='PNS_glial_score',  title=f'{sample_id} - PNS-glial', bw=False, alpha_img=0.5, cmap=cmap_adj)
-plt.savefig(os.path.join(out_dir, sample_id + '_PNS_glial_score_noCDH19.pdf'))
+plt.savefig(os.path.join(out_dir, sample_id + '_PNS_glial_score_no_Glial_exp_genes_addDCN.pdf'))
 plt.close()
 
 # pnCAFs
@@ -248,7 +260,7 @@ pnCAFs_gene_list = subset_gene_table['gene'].values
 sc.tl.score_genes(adata = adata, gene_list = pnCAFs_gene_list, ctrl_size=50, gene_pool=None, n_bins=25, score_name='pnCAFs_score', random_state=0, copy=False, use_raw=None)
 
 sc.pl.spatial(adata, color='pnCAFs_score', title=f'{sample_id} - pnCAFs', bw=False, alpha_img=0.5, cmap=cmap_adj)
-plt.savefig(os.path.join(out_dir, sample_id + '_pnCAFs_score_noCDH19.pdf'))
+plt.savefig(os.path.join(out_dir, sample_id + '_pnCAFs_score_no_Glial_exp_genes_addDCN.pdf'))
 plt.close()
 
 # NPF like (out of curiosity)
@@ -257,7 +269,7 @@ pnCAFs_gene_list = subset_gene_table['gene'].values
 sc.tl.score_genes(adata = adata, gene_list = pnCAFs_gene_list, ctrl_size=50, gene_pool=None, n_bins=25, score_name='NPF_score', random_state=0, copy=False, use_raw=None)
 
 sc.pl.spatial(adata, color='NPF_score', title=f'{sample_id} - NPF', bw=False, alpha_img=0.5, cmap=cmap_adj)
-plt.savefig(os.path.join(out_dir, sample_id + '_NPF_score_noCDH19.pdf'))
+plt.savefig(os.path.join(out_dir, sample_id + '_NPF_score_no_Glial_exp_genes_addDCN.pdf'))
 plt.close()
 
 
@@ -274,7 +286,23 @@ plt.close()
 selected_columns = ['PNS_glial_score', 'pnCAFs_score', 'NPF_score']  # Replace with actual column names
 score_df = pd.DataFrame(adata.obs[selected_columns])
 score_df['sample_id'] = sample_id
+score_df['barcode_id'] = adata.obs_names
 
-score_df.to_csv(os.path.join(out_dir, sample_id + "_PNS_glial_pnCAF_scores_noCDH19.csv"), index=False)
+score_df.to_csv(os.path.join(out_dir, sample_id + "_PNS_glial_pnCAF_scores_no_Glial_exp_genes_addDCN.csv"), index=False)
+
+# ADD PATH ANNOTATION TO OBJECT AND RESAVE -----------------------------------------------------------
+
+# Link to histo annotations
+
+histo_file = os.path.join(project_dir, "data", "20240318_reviewed_histo_annotation_FFPE_v1", sample_name + "_Histology_Reviewed.csv")
+
+df = pd.read_csv(os.path.join(histo_file), index_col = 0)
+df['sample_id'] = sample_id
+df['sample_type'] = sample_type
+
+adata.obs[df.columns] = df
+
+# save object
+ad.AnnData.write(adata, filename=os.path.join(h5ad_dir, 'log_norm', f"{sample_id}_log_norm_meta.h5ad"))
 
 print("Script succesfully completed")
