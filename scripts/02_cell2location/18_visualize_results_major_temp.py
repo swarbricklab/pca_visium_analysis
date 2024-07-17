@@ -61,7 +61,7 @@ os.makedirs(tabDir, exist_ok=True)
 
 
 # inDir for results from previous step
-inDir = os.path.join("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/02_cell2location/03a_cell_type_mapping", sample_id, "objects")
+inDir = os.path.join("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/02_cell2location/17a_cell_type_mapping_major_temp", sample_id, "objects")
 
 # --- Extract some info from the sample sheet
 
@@ -112,7 +112,7 @@ plt.close('all')
 from cell2location.plt import plot_spatial
 
 # select up to 6 clusters
-clust_labels = ['uniCAFs', 'NPF_like', 'whCAFs', 'pnCAFs', 'pSMCs', 'vSMCs', 'Pericytes']
+clust_labels = ['CAFs', 'SMCs', 'Epithelial', 'PNS_Glial']
 clust_col = ['' + str(i) for i in clust_labels] # in case column names differ from labels
 
 with mpl.rc_context({'figure.figsize': (15, 15)}):

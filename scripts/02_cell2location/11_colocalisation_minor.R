@@ -111,6 +111,11 @@ celltypes <- names(df)[!names(df) %in% exclude_cols]
 
 df_tidy <- df %>% pivot_longer(celltypes, names_to = "celltype_major_v2", values_to = "c2l_value")
 
+        # use proportions moving forward, a bit more interpretable.. 
+        df_tidy <- df_tidy %>%
+          group_by(sample_id, Barcode) %>%
+          mutate(prop_value = c2l_value / sum(c2l_value)) %>% select(-c2l_value)
+
 # Count how many unique barcodes per sample_id
 barcode_counts <- df_tidy %>%
   group_by(sample_id) %>%
@@ -135,7 +140,8 @@ barcode_counts <- df_tidy %>%
 # Merge based on both sample_id and Barcode
 merged_df <- inner_join(df_tidy, histo_df, by = c("sample_id", "Barcode"))
 
-spread_df <- spread(merged_df, key = celltype_major_v2, value = c2l_value)
+#spread_df <- spread(merged_df, key = celltype_major_v2, value = c2l_value)
+spread_df <- spread(merged_df, key = celltype_major_v2, value = prop_value)
 
 # exclude "Exclude" histology from the analysis - this will be spots outside of the tissue, etc
 spread_df <- spread_df %>% filter(Histology != "Exclude")
@@ -150,8 +156,8 @@ spread_df <- spread_df %>% filter(Histology != "Exclude")
 # Function to calculate Pearson correlation and p-values for a given sample_id
 calculate_correlations <- function(df, sample_id, celltype) {
   # Filter the data for the given sample_id
-  sample_data <- df %>%
-    filter(sample_id == !!sample_id) %>% select(-sample_id, -Barcode, -type, -Histology)
+  sample_data <- df %>% ungroup() %>%
+    filter(sample_id == !!sample_id) %>% dplyr::select(-sample_id, -Barcode, -type, -Histology)
 
   # Select the column of interest for correlation analysis (specified celltype)
   numeric_vector <- sample_data[[celltype]]
@@ -187,7 +193,10 @@ calculate_correlations <- function(df, sample_id, celltype) {
 }
 
 # List of cell types of interest (lineage 1 comparison to all other cell types at minor level)
-interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_of_interest_v3.csv")
+# interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_of_interest_v3.csv")
+# interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_CAFs_all.csv")
+interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_CAFs_subset.csv")
+
 cell_types_of_interest <- unique(interactions_df$celltype_1)
 
 # Create an empty list to store the correlation data frames for each cell type
@@ -318,7 +327,9 @@ filtered_t_cor_matrix <- t_cor_matrix[filtered_rownames, ]
 filtered_t_asterisk_matrix <- t_asterisk_matrix[filtered_rownames, ]
 
 # get info from spread_df (should already be filtered, but just in case any samples have squeezed through, somehow)
-anno_df <- spread_df %>% filter(sample_id %in% all_of(colnames(filtered_t_cor_matrix))) %>% distinct(sample_id, type) %>% remove_rownames() %>% column_to_rownames("sample_id")
+spread_df2 <- spread_df %>% ungroup() %>% select(-Barcode)
+
+anno_df <- spread_df2 %>% filter(sample_id %in% all_of(colnames(filtered_t_cor_matrix))) %>% distinct(sample_id, type) %>% remove_rownames() %>% column_to_rownames("sample_id")
 # actuall add sample_id as a column again
 anno_df$sample_id <- rownames(anno_df)
 
@@ -333,7 +344,6 @@ anno_cols <- list(
                     "20153-2" = "#D55E00")
     )
 
-
 # order the matrix by adjacent benign samples, followed by cancer
 desired_order = c('20111-2', '20153-2', '20130-2', '20033', '20216-1', '19617-2')
 
@@ -341,6 +351,81 @@ desired_order = c('20111-2', '20153-2', '20130-2', '20033', '20216-1', '19617-2'
 filtered_t_cor_matrix = filtered_t_cor_matrix[, desired_order]
 filtered_t_asterisk_matrix = filtered_t_asterisk_matrix[, desired_order]
 
+
+# WHEN PLOTTING CAF popn's SEPARATELY --------------------------------
+
+plot_heatmaps <- function(cor_matrix, asterisk_matrix) {
+  # Function to split the matrix based on row names
+  split_matrix <- function(matrix) {
+    npf_like_matrix <- matrix[grep("^NPF_like", rownames(matrix)), ]
+    pnCAFs_matrix <- matrix[grep("^pnCAFs", rownames(matrix)), ]
+    uniCAFs_matrix <- matrix[grep("^uniCAFs", rownames(matrix)), ]
+    whCAFs_matrix <- matrix[grep("^whCAFs", rownames(matrix)), ]
+    matrices <- list(NPF_like = npf_like_matrix, pnCAFs = pnCAFs_matrix, uniCAFs = uniCAFs_matrix, whCAFs = whCAFs_matrix)
+    return(matrices)
+  }
+  
+  # Split the correlation matrix and asterisk matrix
+  cor_matrices <- split_matrix(cor_matrix)
+  asterisk_matrices <- split_matrix(asterisk_matrix)
+  
+  # Create heatmaps for each pair of matrices
+  for (key in names(cor_matrices)) {
+    cor_matrix <- cor_matrices[[key]]
+    asterisk_matrix <- asterisk_matrices[[key]]
+    
+    p <- pheatmap(
+      cor_matrix,
+      annotation = anno_df,
+      annotation_colours = anno_cols,
+      display_numbers = asterisk_matrix,
+      fontsize_number = 8,
+      cluster_rows = FALSE,
+      cluster_cols = FALSE,
+      col = colorRampPalette(c("dodgerblue4", "white", "red4"))(50),
+      na_col = "gray",
+      border_color = NA,
+      cellwidth = 14, cellheight = 14, 
+      main = paste("Heatmap for", key),
+      ylab = "Cell type Pair",
+      xlab = "Sample IDs",
+      scale = "none"
+    )
+    
+    # Print the heatmap plot
+    pdf(paste0(figDir, key, "_minor_cell2location.pdf"), width = 15, height=15)
+    print(p)
+    dev.off()
+
+    p <- pheatmap(
+      cor_matrix,
+      annotation = anno_df,
+      annotation_colours = anno_cols,
+      display_numbers = asterisk_matrix,
+      fontsize_number = 8,
+      cluster_rows = TRUE,
+      cluster_cols = TRUE,
+      col = colorRampPalette(c("dodgerblue4", "white", "red4"))(50),
+      na_col = "gray",
+      border_color = NA,
+      cellwidth = 14, cellheight = 14, 
+      main = paste("Heatmap for", key),
+      ylab = "Cell type Pair",
+      xlab = "Sample IDs",
+      scale = "none"
+    )
+    
+    # Print the heatmap plot
+    pdf(paste0(figDir, key, "_minor_cell2location_clustered.pdf"), width = 15, height=15)
+    print(p)
+    dev.off()
+  }
+}
+
+# Usage: Call the function with your filtered_t_cor_matrix and filtered_t_asterisk_matrix
+plot_heatmaps(filtered_t_cor_matrix, filtered_t_asterisk_matrix)
+
+# WHEN PLOTTING ALL TOGETHER -----------------------------------------
 
 # Create the heatmap using pheatmap
 p <- pheatmap(
@@ -363,7 +448,7 @@ p <- pheatmap(
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "celltype_minor_cell2location_v3.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "celltype_minor_cell2location_v3_new.pdf"), width = 15, height=15)
 print(p)
 dev.off()
 
@@ -388,7 +473,7 @@ p <- pheatmap(
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "celltype_minor_cell2location_clustered_v3.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "celltype_minor_cell2location_clustered_v3_new.pdf"), width = 15, height=15)
 print(p)
 dev.off()
 
@@ -399,7 +484,8 @@ dev.off()
 
 # reload/create df
 
-spread_df <- spread(merged_df, key = celltype_major_v2, value = c2l_value)
+#spread_df <- spread(merged_df, key = celltype_major_v2, value = c2l_value)
+spread_df <- spread(merged_df, key = celltype_major_v2, value = prop_value)
 
 # exclude "Exclude" histology from the analysis - this will be spots outside of the tissue, etc
 spread_df <- spread_df %>% filter(Histology != "Exclude")
@@ -416,7 +502,7 @@ spread_df$Histology <- gsub("\\(|\\)", "", spread_df$Histology)
 # Function to calculate Pearson correlation and p-values for a given sample_id
 calculate_correlations_histo <- function(df, histology, celltype) {
   # Filter the data for the given sample_id
-  sample_data <- df %>%
+  sample_data <- df %>% ungroup() %>%
     filter(Histology == !!histology) %>% select(-sample_id, -Barcode, -type, -Histology)
 
   # Select the column of interest for correlation analysis (specified celltype)
@@ -453,7 +539,7 @@ calculate_correlations_histo <- function(df, histology, celltype) {
 }
 
 # List of cell types of interest (lineage 1 comparison to all other cell types at minor level)
-interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_of_interest_v3.csv")
+# interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_of_interest_v3.csv")
 cell_types_of_interest <- unique(interactions_df$celltype_1)
 
 # Create an empty list to store the correlation data frames for each cell type
@@ -591,8 +677,9 @@ filtered_t_cor_matrix <- t_cor_matrix[filtered_rownames, ]
 filtered_t_asterisk_matrix <- t_asterisk_matrix[filtered_rownames, ]
 
 # get info from spread_df (should already be filtered, but just in case any samples have squeezed through, somehow)
-anno_df <- spread_df %>% filter(Histology %in% all_of(colnames(filtered_t_cor_matrix))) %>% distinct(Histology, main_histology) %>% remove_rownames() %>% column_to_rownames("Histology")
-# anno_cols <- list(type = type_cols_darker)
+spread_df2 <- spread_df %>% ungroup() %>% select(-Barcode)
+
+anno_df <- spread_df2 %>% filter(Histology %in% all_of(colnames(filtered_t_cor_matrix))) %>% distinct(Histology, main_histology) %>% remove_rownames() %>% column_to_rownames("Histology")
 
 # order the matrix by histology features
 desired_order = c('Epi_Benign', 'Epi_Benign_transitional', 'GG3', 'GG4', 'GG4_Cribriform', 'Inflammation', 'Stroma_prostatic', 'Stroma_extraprostatic', 'Vessel', 'Nerve', 'Adipose')
@@ -600,6 +687,81 @@ desired_order = c('Epi_Benign', 'Epi_Benign_transitional', 'GG3', 'GG4', 'GG4_Cr
 # reindex the df with the desired order of columns
 filtered_t_cor_matrix = filtered_t_cor_matrix[, desired_order]
 filtered_t_asterisk_matrix = filtered_t_asterisk_matrix[, desired_order]
+
+
+# WHEN PLOTTING CAF popn's SEPARATELY --------------------------------
+
+plot_heatmaps <- function(cor_matrix, asterisk_matrix) {
+  # Function to split the matrix based on row names
+  split_matrix <- function(matrix) {
+    npf_like_matrix <- matrix[grep("^NPF_like", rownames(matrix)), ]
+    pnCAFs_matrix <- matrix[grep("^pnCAFs", rownames(matrix)), ]
+    uniCAFs_matrix <- matrix[grep("^uniCAFs", rownames(matrix)), ]
+    whCAFs_matrix <- matrix[grep("^whCAFs", rownames(matrix)), ]
+    matrices <- list(NPF_like = npf_like_matrix, pnCAFs = pnCAFs_matrix, uniCAFs = uniCAFs_matrix, whCAFs = whCAFs_matrix)
+    return(matrices)
+  }
+  
+  # Split the correlation matrix and asterisk matrix
+  cor_matrices <- split_matrix(cor_matrix)
+  asterisk_matrices <- split_matrix(asterisk_matrix)
+  
+  # Create heatmaps for each pair of matrices
+  for (key in names(cor_matrices)) {
+    cor_matrix <- cor_matrices[[key]]
+    asterisk_matrix <- asterisk_matrices[[key]]
+    
+    p <- pheatmap(
+      cor_matrix,
+      annotation = anno_df,
+      display_numbers = asterisk_matrix,
+      fontsize_number = 8,
+      cluster_rows = FALSE,
+      cluster_cols = FALSE,
+      col = colorRampPalette(c("dodgerblue4", "white", "red4"))(50),
+      na_col = "gray",
+      border_color = NA,
+      cellwidth = 14, cellheight = 14, 
+      main = paste("Heatmap for", key),
+      ylab = "Cell type Pair",
+      xlab = "Sample IDs",
+      scale = "none"
+    )
+    
+    # Print the heatmap plot
+    pdf(paste0(figDir, key, "_minor_cell2location_histology.pdf"), width = 15, height=15)
+    print(p)
+    dev.off()
+
+    p <- pheatmap(
+      cor_matrix,
+      annotation = anno_df,
+      display_numbers = asterisk_matrix,
+      fontsize_number = 8,
+      cluster_rows = TRUE,
+      cluster_cols = TRUE,
+      col = colorRampPalette(c("dodgerblue4", "white", "red4"))(50),
+      na_col = "gray",
+      border_color = NA,
+      cellwidth = 14, cellheight = 14, 
+      main = paste("Heatmap for", key),
+      ylab = "Cell type Pair",
+      xlab = "Sample IDs",
+      scale = "none"
+    )
+    
+    # Print the heatmap plot
+    pdf(paste0(figDir, key, "_minor_cell2location_histology_clustered.pdf"), width = 15, height=15)
+    print(p)
+    dev.off()
+  }
+}
+
+# Usage: Call the function with your filtered_t_cor_matrix and filtered_t_asterisk_matrix
+plot_heatmaps(filtered_t_cor_matrix, filtered_t_asterisk_matrix)
+
+
+# WHEN PLOTTING ALL TOGETHER -----------------------------------------
 
 # Create the heatmap using pheatmap
 p <- pheatmap(
@@ -622,7 +784,7 @@ p <- pheatmap(
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "celltype_minor_cell2location_histology_v3.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "celltype_minor_cell2location_histology_v3_neww.pdf"), width = 15, height=15)
 print(p)
 dev.off()
 
@@ -647,7 +809,7 @@ p <- pheatmap(
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "celltype_minor_cell2location_clustered_histology_v3.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "celltype_minor_cell2location_clustered_histology_v3_neww.pdf"), width = 15, height=15)
 print(p)
 dev.off()
 

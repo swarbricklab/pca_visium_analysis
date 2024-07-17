@@ -130,7 +130,7 @@ with mpl.rc_context({'figure.figsize': (15, 15)}):
         colorbar_position='right'
     )
 
-plt.savefig(os.path.join(out_dir_plots, 'selected_cell_types.pdf'))
+plt.savefig(os.path.join(figDir, 'selected_cell_types.pdf'))
 plt.close('all')
 
 

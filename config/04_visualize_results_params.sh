@@ -7,6 +7,7 @@ projectName="PCa_Visium"
 # 02 REPO NAME
 repo="pca_visium_analysis"
 # 03 EXP CODE
+# exp="02_cell2location"
 exp="02_cell2location"
 # 04 ANALYSIS
 analysis="04_visualize_results" # change name of analysis
@@ -18,7 +19,4 @@ environment="cell2location"
 
 # Paths to downstream scripts
 h5ad_dir="/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/data/anndata_objects/"
-model_dir="/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/02_cell2location/02_train_model/figures/reference_signatures/"
-
-# Environment to use
-environment="cell2location"
+model_dir="/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/${exp}/02_train_model/figures/reference_signatures/"

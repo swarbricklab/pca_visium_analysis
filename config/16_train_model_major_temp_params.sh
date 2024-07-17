@@ -7,10 +7,9 @@ projectName="PCa_Visium"
 # 02 REPO NAME
 repo="pca_visium_analysis"
 # 03 EXP CODE
-# exp="02_cell2location"
 exp="02_cell2location"
 # 04 ANALYSIS
-analysis="02_train_model"
+analysis="16_train_model_major_temp"
 # 05 SAMPLE ID
 sample_id="PCa_atlas"
 #  PATH TO SINGLE CELL REFERENCE
@@ -26,12 +25,11 @@ sample_id="PCa_atlas"
 environment="cell2location"
 
 # Paths to downstream scripts
-# h5ad_dir="/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/data/anndata_objects/"
-#h5ad_dir="/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/data/PMID_35948708/filtered_feature_bc_matrix"``
-#model_dir="/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/03_mengxiao_data_PMID_35948708/02_train_model/figures/reference_signatures/"
+h5ad_dir="/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/data/anndata_objects/"
+model_dir="/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/02_cell2location/16_train_model_major_temp/figures/reference_signatures/"
 
 # 09 DATA TO USE (Which data to use - different normalization methods: SCTransform or scanpy's log norm)
-use_data="log_norm"
+# use_data="log_norm"
 
 # make a log directory
 logDir="/share/ScratchGeneral/evaapo/projects/${projectName}/${repo}/results/${exp}/${analysis}/logs/"
