@@ -1,0 +1,5 @@
+outs:
+- md5: 2322286d4e0886bc63274031eb4ea132.dir
+  size: 49072
+  nfiles: 12
+  path: gene_lists
