@@ -1,0 +1,5 @@
+outs:
+- md5: 3d80ffa77d92744520f81a53d7ab2a8e.dir
+  size: 1736760466
+  nfiles: 7
+  path: 16_train_model_major_temp
