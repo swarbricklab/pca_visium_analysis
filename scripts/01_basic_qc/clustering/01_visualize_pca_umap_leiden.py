@@ -40,8 +40,8 @@ parser.add_argument("--data_dir", help="Path to raw data")
 parser.add_argument("--res_dir", help="Path to results directory")
 parser.add_argument("--h5ad_dir", help="Path to directory for .h5ad output files")
 parser.add_argument("--project_dir", help="Project directory (root)")
-parser.add_argument("--sample_id", help="Sample ID")
-parser.add_argument("--unique_id", help="Unique sample ID")
+parser.add_argument("--section_name", help="Sample ID")
+# parser.add_argument("--unique_id", help="Unique sample ID")
 parser.add_argument("--seed", help="Seed", type=int)
 
 parser.add_argument("--row_max", help="Row max for cropping Visium data", type=int)
@@ -61,12 +61,12 @@ args = vars(parser.parse_args())
 data_dir = args["data_dir"]
 res_dir = args["res_dir"]
 h5ad_dir=args["h5ad_dir"]
-sample_id=args["sample_id"]
+section_name=args["section_name"]
 
 project_dir=args["project_dir"]
 
-use_data=args["use_data"]
-
+#use_data=args["use_data"]
+use_data="log_norm"
 
 # --- Print which data using
 
@@ -74,21 +74,34 @@ print(f'Use data: {use_data}')
 
 # Extract the section_id
 sample_dir = os.path.join(project_dir, 'config')
-sample_sheet_file = 'sample_sheet.csv'
-
+sample_sheet_file = '20240716_sample_sheet.csv'
 sample_sheet = pd.read_csv(os.path.join(sample_dir, sample_sheet_file))
-sample_lut = sample_sheet.set_index('sample_id')
 
-sample_name = sample_lut.loc[sample_id, 'sample_name']
-sample_type = sample_lut.loc[sample_id, 'type']
+# sample_lut = sample_sheet.set_index('section_name')
 
+# Debugging: Print the DataFrame info
+print("Sample Sheet DataFrame Info:")
+print(sample_sheet.info())
+
+# Debugging: Print the first few rows of the DataFrame
+print("Sample Sheet DataFrame Head:")
+print(sample_sheet.head())
+
+# Set the index to 'section_name'
+sample_lut = sample_sheet.set_index('section_name')
+
+# Debugging: Print the DataFrame columns and index
+print("Sample LUT Columns:", sample_lut.columns)
+print("Sample LUT Index:", sample_lut.index)
+
+sample_type = sample_lut.loc[section_name, 'type']
 
 # -- Load data
 
 if use_data == "SCT":
-    adata = ad.read(os.path.join(h5ad_dir, 'SCTransform', f'{sample_name}_SCT.h5ad'))
+    adata = ad.read(os.path.join(h5ad_dir, 'SCTransform', f'{section_name}_SCT.h5ad'))
 else:
-    adata = ad.read(os.path.join(h5ad_dir, 'log_norm', f'{sample_name}_log_norm.h5ad'))
+    adata = ad.read(os.path.join(h5ad_dir, 'log_norm', f'{section_name}_log_norm.h5ad'))
 
 
 # --- Specify layer to use
@@ -111,7 +124,7 @@ sc.set_figure_params(scanpy=True, fontsize=15)
 
 # --- Plot 1: Variance ratio
 sc.pl.pca_variance_ratio(adata, n_pcs=50, log=True)
-plt.suptitle(f'{sample_id} ({sample_type}) - PCA variance', y=1.1, fontweight='bold')
+plt.suptitle(f'{section_name} ({sample_type}) - PCA variance', y=1.1, fontweight='bold')
 
 plt.savefig('test.pdf', bbox_inches='tight')
 
@@ -121,7 +134,7 @@ if use_data == 'log_norm':
     dimensions_to_check=10
     plt.rcParams['figure.figsize']=(5, 5)
     sc.pl.pca_loadings(adata, components = range(1, dimensions_to_check+1, 1), n_points = 10)
-    plt.suptitle(f'{sample_id} ({sample_type}) PCA loadings (top 10) - Use data: {use_data}', y=1, fontweight='bold')
+    plt.suptitle(f'{section_name} ({sample_type}) PCA loadings (top 10) - Use data: {use_data}', y=1, fontweight='bold')
 
 
 # --- Check UMAP results
@@ -136,13 +149,13 @@ adata.obs['log_counts'] = np.log(adata.obs['total_counts'])
 to_plot = ['total_counts', 'log_counts', 'n_genes_by_counts', 'pct_counts_mt']
 
 sc.pl.umap(adata, wspace=0.3, color = to_plot, ncols=len(to_plot))
-plt.suptitle(f'{sample_id} ({sample_type}) UMAP qc metrics - Use data: {use_data}', y=1.1, fontweight='bold')
+plt.suptitle(f'{section_name} ({sample_type}) UMAP qc metrics - Use data: {use_data}', y=1.1, fontweight='bold')
 
 
 # --- Plot 4: Leiden clusters on UMAP
 
 sc.pl.umap(adata, color = 'leiden')
-plt.suptitle(f'{sample_id} ({sample_type}) - Leiden clusters - Use data: {use_data}', y=1.1, fontweight='bold')
+plt.suptitle(f'{section_name} ({sample_type}) - Leiden clusters - Use data: {use_data}', y=1.1, fontweight='bold')
 
 
 # --- Plot 5: Leiden clusters spatially
@@ -152,16 +165,16 @@ ncols = 3
 fig, axs = plt.subplots(ncols=ncols, figsize=(5*ncols, 5), sharey=True)
 
 n=0
-sc.pl.spatial(adata, color=None, size=spot_size, bw=False, alpha_img=1, crop_coord=coords, title=f'{sample_id} - H&E', ax=axs[n])
+sc.pl.spatial(adata, color=None, size=spot_size, bw=False, alpha_img=1, crop_coord=coords, title=f'{section_name} - H&E', ax=axs[n])
 
 n+=1
-sc.pl.spatial(adata, color='leiden', bw=False, alpha_img=0.5, crop_coord=coords, title=f'{sample_id} - Leiden', ax=axs[n])
+sc.pl.spatial(adata, color='leiden', bw=False, alpha_img=0.5, crop_coord=coords, title=f'{section_name} - Leiden', ax=axs[n])
 
 n+=1
-sc.pl.spatial(adata, color='leiden', bw=False, size=spot_size, alpha_img=0.5, crop_coord=coords, title=f'{sample_id} - Leiden (big spots)', ax=axs[n])
+sc.pl.spatial(adata, color='leiden', bw=False, size=spot_size, alpha_img=0.5, crop_coord=coords, title=f'{section_name} - Leiden (big spots)', ax=axs[n])
 
 plt.tight_layout()
-plt.suptitle(f'{sample_id} ({sample_type}) - Leiden clusters spatially - Use data: {use_data}', y=1.1, fontweight='bold')
+plt.suptitle(f'{section_name} ({sample_type}) - Leiden clusters spatially - Use data: {use_data}', y=1.1, fontweight='bold')
 
 plt.savefig('test.pdf', bbox_inches='tight')
 
@@ -175,20 +188,20 @@ sc.tl.rank_genes_groups(adata, 'leiden', use_raw = False, layer=use_layer, metho
 # --- Plot 6: Heatmaps of the top 10 genes per cluster
 
 sc.pl.rank_genes_groups_heatmap(adata, n_genes=10, groupby='leiden', key=rank_genes_key, layer=use_layer)
-plt.suptitle(f'{sample_id} ({sample_type}) - Top 10 genes per cluster - Use data: {use_data}', y=1.1, fontweight='bold')
+plt.suptitle(f'{section_name} ({sample_type}) - Top 10 genes per cluster - Use data: {use_data}', y=1.1, fontweight='bold')
 
 
 # --- Plot 7: Dot plots for top 10 genes per cluster
 
 
 sc.pl.rank_genes_groups_dotplot(adata, n_genes=10, groupby='leiden', key=rank_genes_key, layer=use_layer)
-plt.suptitle(f'{sample_id} ({sample_type}) - Top 10 genes per cluster - Use data: {use_data}', y=1.1, fontweight='bold')
+plt.suptitle(f'{section_name} ({sample_type}) - Top 10 genes per cluster - Use data: {use_data}', y=1.1, fontweight='bold')
 
 
 # --- Plot 8: 1 vs rest plots
 
 sc.pl.rank_genes_groups(adata, n_genes=25, groupby='leiden', key=rank_genes_key, layer=use_layer)
-plt.suptitle(f'{sample_id} ({sample_type}) - Leiden clusters 1 vs rest plots, 25 genes - Use data: {use_data}', y=1.1, fontweight='bold')
+plt.suptitle(f'{section_name} ({sample_type}) - Leiden clusters 1 vs rest plots, 25 genes - Use data: {use_data}', y=1.1, fontweight='bold')
 
 
 # --- Save output
@@ -198,7 +211,7 @@ os.makedirs(qc_dir, exist_ok=True)
 
 os.chdir(qc_dir)
 
-filename = f"{sample_id}_PCA_UMAP_leiden.pdf"
+filename = f"{section_name}_PCA_UMAP_leiden.pdf"
 
 today = date.today()
 today = today.strftime("%Y%m%d")

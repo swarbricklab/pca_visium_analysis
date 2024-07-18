@@ -4,13 +4,16 @@
 project_name="pca_visium_analysis"
 
 # --- Directories
-
+# Get the current working directory
 cwd=$(pwd)
 
-# Get the project directory (root)
-# Use dirname to get one directory up (assuming the scripts folder is one down from the root)
-# project_dir=$(dirname "$cwd")
-project_dir="$(pwd)/$project_name"
+# Get the project directory (one level up - assuming the scripts folder is one down from the root)
+project_dir=$(dirname "$cwd")
+
+# Print to verify the directories
+echo "Current working directory: $cwd"
+echo "Project directory: $project_dir"
+
 
 res_dir="$project_dir/results"
 h5ad_dir="$project_dir/data/anndata_objects" # Path to the h5ad files (anndata objects)
@@ -24,7 +27,7 @@ min_gene=200
 min_spots=3
 
 # Environment to use
-environment="eva-pca-visium"
+environment="pca-visium"
 
 # Seed
 seed=42

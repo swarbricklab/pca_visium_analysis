@@ -1,0 +1,3 @@
+location_on_slide,section_name,sample_name,sample_id_uns,patient_id,type,batch,spots,visium_slide_id
+NA,PCa20153_C1_20128_C1,PCa20153_C1_20128_C1,20153-1_20128-1,20153_20128,cancer,3,,V53U05-388B
+NA,PCa20130_C1_20272_C2,PCa20130_C1_20272_C2,20130-1_20272-2,20130_20272,cancer,3,,V53U05-388A

@@ -38,7 +38,7 @@ parser = argparse.ArgumentParser(description="Import Visium data & do basic QC",
 # Required
 parser.add_argument("--raw_data_dir", help="Path to raw data")
 parser.add_argument("--h5ad_dir", help="Path to directory for .h5ad output files")
-parser.add_argument("--sample_id", help="Sample ID")
+parser.add_argument("--section_name", help="Section Name")
 parser.add_argument("--project_dir", help="Path to the root of the project directory")
 parser.add_argument("--min_count", help="Minimal number of counts per spot", type=int)
 parser.add_argument("--min_gene", help="Minimal number of genes per spot", type=int)
@@ -53,7 +53,7 @@ args = vars(parser.parse_args())
 # --- Arguments
 res_dir = args["res_dir"]
 h5ad_dir = args["h5ad_dir"]
-sample_id = args["sample_id"]
+section_name = args["section_name"]
 
 use_data = args["use_data"]
 project_dir = args["project_dir"]
@@ -66,18 +66,33 @@ min_spots = args["min_spots"]
 
 # Extract the section_id
 sample_dir = os.path.join(project_dir, 'config')
-sample_sheet_file = 'sample_sheet.csv'
-
+sample_sheet_file = '20240716_sample_sheet.csv'
 sample_sheet = pd.read_csv(os.path.join(sample_dir, sample_sheet_file))
-sample_lut = sample_sheet.set_index('sample_id')
 
-sample_name = sample_lut.loc[sample_id, 'sample_name']
-sample_type = sample_lut.loc[sample_id, 'type']
+# sample_lut = sample_sheet.set_index('section_name')
+
+# Debugging: Print the DataFrame info
+print("Sample Sheet DataFrame Info:")
+print(sample_sheet.info())
+
+# Debugging: Print the first few rows of the DataFrame
+print("Sample Sheet DataFrame Head:")
+print(sample_sheet.head())
+
+# Set the index to 'section_name'
+sample_lut = sample_sheet.set_index('section_name')
+
+# Debugging: Print the DataFrame columns and index
+print("Sample LUT Columns:", sample_lut.columns)
+print("Sample LUT Index:", sample_lut.index)
+
+# section_name = sample_lut.loc[section_name, 'section_name']
+sample_type = sample_lut.loc[section_name, 'type']
 
 
 # --- Load the adata object
 
-adata = ad.read(os.path.join(h5ad_dir, 'raw', f'{sample_name}_raw.h5ad'))
+adata = ad.read(os.path.join(h5ad_dir, 'raw', f'{section_name}_raw.h5ad'))
 
 
 # --- Plot QC metrics
@@ -148,7 +163,7 @@ for ax in axs:
             fill_color[0][-1] = 0.8 # make the fill color a bit transparent
             collection.set_facecolor(fill_color)
 
-plt.suptitle(f'{sample_id} ({sample_type}) - QC metrics (green line = median, red line = potential filtering threshold)', y=1, fontweight='bold', x=0.5)
+plt.suptitle(f'{section_name} ({sample_type}) - QC metrics (green line = median, red line = potential filtering threshold)', y=1, fontweight='bold', x=0.5)
 plt.tight_layout()
 
 
@@ -169,11 +184,11 @@ for n, plot in enumerate(to_plot):
     # add a new subplot iteratively
     ax = plt.subplot(nrows, ncols, n + 1)
     if n==0:
-        sc.pl.spatial(adata, color=None, crop_coord=coords, size=1.2, alpha_img=1, title=f'{sample_id}', ax=ax)
+        sc.pl.spatial(adata, color=None, crop_coord=coords, size=1.2, alpha_img=1, title=f'{section_name}', ax=ax)
     else:
         sc.pl.spatial(adata, color=[plot], crop_coord=coords, size=spot_size, alpha_img=0.5, ax=ax, cmap='magma_r')
 
-plt.suptitle(f'{sample_id} ({sample_type}) - QC metrics spatial', y=1.1, fontweight='bold', x=0.5)
+plt.suptitle(f'{section_name} ({sample_type}) - QC metrics spatial', y=1.1, fontweight='bold', x=0.5)
 plt.subplots_adjust(wspace=0)
 
 
@@ -253,7 +268,7 @@ sns.histplot(adata.obs['n_genes_by_counts'][adata.obs['n_genes_by_counts'] > 600
              kde=False, bins=60, ax=ax)
 ax.set_title('Total genes > 6000', fontweight='bold')
 
-plt.suptitle(f'{sample_id} ({sample_type}) - QC metrics histograms: total counts & total genes per spot', y=1, fontweight='bold', x=0.5)
+plt.suptitle(f'{section_name} ({sample_type}) - QC metrics histograms: total counts & total genes per spot', y=1, fontweight='bold', x=0.5)
 
 
 # --- Plot 4: Number of genes & UMI correlations
@@ -290,7 +305,7 @@ ax.set_title('pct_mt vs counts', fontweight='bold')
 # Rotate xlabels
 xlabels = ax.get_xticklabels()
 ax.set_xticklabels(xlabels, rotation=45, ha='right')
-plt.suptitle(f'{sample_id} ({sample_type}) - counts correlations', y=1, fontweight='bold', x=0.5)
+plt.suptitle(f'{section_name} ({sample_type}) - counts correlations', y=1, fontweight='bold', x=0.5)
 
 plt.tight_layout()
 
@@ -327,7 +342,7 @@ ax.axvline(min_spots, color="red")
 ax.text(x=min_spots+0.02*ax.get_xlim()[1], y=0.75*ax.get_ylim()[1], s=f"Min spots: {min_spots}")
 
 
-plt.suptitle(f'{sample_id} ({sample_type}) - Number of spots each gene is detected in', y=1.15, fontweight='bold', x=0.5)
+plt.suptitle(f'{section_name} ({sample_type}) - Number of spots each gene is detected in', y=1.15, fontweight='bold', x=0.5)
 
 
 # --- Plot 6: Spatial plot of low quality spots
@@ -346,8 +361,8 @@ adata.obs['low_gene'] = np.where(adata.obs['n_genes_by_counts'] <= min_gene, 'lo
 adata.obs['low_gene'] = pd.Categorical(adata.obs['low_gene'], categories=['pass', 'low_gene'], ordered=True)
 
 # Check if there's a cytassist image
-sample_name = list(adata.uns['spatial'].keys())[0]
-if 'cytassist' in adata.uns['spatial'][sample_name]['images'].keys():
+section_name = list(adata.uns['spatial'].keys())[0]
+if 'cytassist' in adata.uns['spatial'][section_name]['images'].keys():
     ncols = 2
     nrows = 2
 
@@ -374,19 +389,19 @@ n+=1
 ax = axs[n]
 
 sc.pl.spatial(adata, alpha_img = 1, crop_coord=coords, ax=ax)
-ax.set_title(sample_id, fontweight='bold')
+ax.set_title(section_name, fontweight='bold')
 
 # Check if there is a cytassist image
 
-if 'cytassist' in adata.uns['spatial'][sample_name]['images'].keys():
+if 'cytassist' in adata.uns['spatial'][section_name]['images'].keys():
     n+=1
     ax = axs[n]
-    ax.imshow(adata.uns['spatial'][sample_name]['images']['cytassist'])
+    ax.imshow(adata.uns['spatial'][section_name]['images']['cytassist'])
     plt.grid(False)
     plt.axis('off')
     ax.set_title('Cytassist image', fontweight='bold')
 
-plt.suptitle(f'{sample_id} ({sample_type}) - Flag low QC spots spatially', y=1, fontweight='bold', x=0.5)
+plt.suptitle(f'{section_name} ({sample_type}) - Flag low QC spots spatially', y=1, fontweight='bold', x=0.5)
 plt.tight_layout()
 
 
@@ -396,7 +411,7 @@ sc.set_figure_params(scanpy=True, fontsize=12)
 
 sc.pl.highest_expr_genes(adata, n_top=20)
 
-plt.suptitle(f'{sample_id} ({sample_type}) - Top genes', y=1, fontweight='bold', x=0.5)
+plt.suptitle(f'{section_name} ({sample_type}) - Top genes', y=1, fontweight='bold', x=0.5)
 
 
 # --- Save output
@@ -404,7 +419,7 @@ plt.suptitle(f'{sample_id} ({sample_type}) - Top genes', y=1, fontweight='bold',
 qc_dir = os.path.join(res_dir, 'basic_qc')
 os.makedirs(qc_dir, exist_ok=True)
 
-filename = f"{sample_id}_qc_plots.pdf"
+filename = f"{section_name}_qc_plots.pdf"
 
 today = date.today()
 today = today.strftime("%Y%m%d")

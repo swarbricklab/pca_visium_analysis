@@ -22,5 +22,7 @@ h5ad_dir="/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/d
 model_dir="/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/02_cell2location/02_train_model/figures/reference_signatures/"
 # model_dir="/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/03_mengxiao_data_PMID_35948708/02_train_model/figures/reference_signatures/"
 
-# Environment to use
-environment="cell2location"
+# Visium sample sheet: contains the names of the visium samples
+# config_dir="/$project_dir/config"
+config_dir="/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config"
+visium_sample_sheet="$config_dir/sample_sheet.csv"
