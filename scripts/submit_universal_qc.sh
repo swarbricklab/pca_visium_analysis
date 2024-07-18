@@ -16,17 +16,18 @@ echo "Run script $file_name"
 # --- Load parameters
 
 # source "../config/params_qc.sh"
-source "pca_visium_analysis/config/params_qc.sh"
+source "../config/params_qc.sh"
 
 # --- Paths to donwstream scripts
 
 run_script_file="$project_dir/scripts/run_universal_qc.sh" # downstream bash script that will run the python script
-function_script_file="$project_dir/$file_name" # actual python script to be run
+function_script_file="$project_dir/scripts/$file_name" # actual python script to be run
 
 # --- Identify samples
 # Identify all from the sample sheet
-# Extract the sample_name column
-samples=$(awk -F',' 'NR > 1 {print $3}' $visium_sample_sheet) 
+# Extract the section_name column
+samples=$(awk -F',' 'NR > 1 {print $2}' $visium_sample_sheet)
+# samples='All_samples' # if running as a single job
 
 echo "Identified samples: $samples"
 
@@ -59,3 +60,5 @@ do
         $run_script_file $function_script_file $h5ad_dir $project_dir $s $environment $min_count $min_gene $min_spots $res_dir
 
 done
+
+# for all plots QC - doesn't work, issue with environemnt: $run_script_file $function_script_file $h5ad_dir $project_dir $s $environment $res_dir

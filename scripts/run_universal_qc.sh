@@ -11,7 +11,7 @@ echo "Start time: $now"
 function_script_file=$1
 h5ad_dir=$2
 project_dir=$3
-sample_id=$4
+section_name=$4
 environment=$5
 min_count=$6
 min_gene=$7
@@ -25,7 +25,7 @@ echo "Run script $function_script_file"
 # script file 
 $function_script_file \
     --h5ad_dir $h5ad_dir \
-    --sample_id $sample_id \
+    --section_name $section_name \
     --project_dir $project_dir \
     --min_count $min_count \
     --min_gene $min_gene \
