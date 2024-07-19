@@ -1,5 +1,5 @@
 outs:
-- md5: ac19c4fd518dd839909d1e768a2be926.dir
-  size: 25852793
-  nfiles: 10
+- md5: c1878550f50c6dfa82c44d08cc50d0ea.dir
+  size: 30153488
+  nfiles: 12
   path: clustering

@@ -1,4 +1,4 @@
-md5: e17763146b402b417ebeab63f8a42e25
+md5: f7bbdb4cca7b691e060bd34aa360246c
 frozen: true
 deps:
 - path: data/processed/anndata_objects
@@ -6,7 +6,7 @@ deps:
     url: git@github.com:swarbricklab/pca_visium_eva.git
     rev_lock: 3d15589b2221b4c242def3c67ce54933edbf4bdb
 outs:
-- md5: b200430f70de5d8394fb1109c7a0a81a.dir
-  size: 12495921346
-  nfiles: 56
+- md5: 055642608c410e82dbbdfd5499a3fbb9.dir
+  size: 21329508413
+  nfiles: 70
   path: anndata_objects
