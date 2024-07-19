@@ -60,10 +60,10 @@ print(f'Samples in python: {sample_list}')
 
 # Extract the section_id
 sample_dir = os.path.join(project_dir, 'config')
-sample_sheet_file = 'sample_sheet.csv'
+sample_sheet_file = '20240716_sample_sheet.csv'
 
 sample_sheet = pd.read_csv(os.path.join(sample_dir, sample_sheet_file))
-sample_lut = sample_sheet.set_index('sample_id')
+sample_lut = sample_sheet.set_index('section_name')
 
 
 # -- Load data

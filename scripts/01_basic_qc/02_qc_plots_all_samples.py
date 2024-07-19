@@ -4,9 +4,12 @@
 # Plot basic qc metrics (calculated using scripts in the original dataset repo)
 # Generates 1 pdf with all plots as separate pages
 
+# for PCa Visium samples batch 3, this script was run manually, using params_qc_manual.py in config/
+# this was due to conda env playing up & requiring repo recloning etc.
+# to access individual samples on a section, use:  adata_dict['PCa20153_C1_20128_C1'].obs['sample_id']
 
 # --- Define environment
-# env: spatial-brca-preview
+# env: pca-visium
 
 # --- Load packages
 import argparse
@@ -66,25 +69,31 @@ print(f'Samples in python: {sample_list}')
 
 # Extract the section_id
 sample_dir = os.path.join(project_dir, 'config')
-sample_sheet_file = 'sample_sheet.csv'
+sample_sheet_file = '20240716_sample_sheet.csv'
 
+# Read the sample sheet and set the 'section_name' column as the index
 sample_sheet = pd.read_csv(os.path.join(sample_dir, sample_sheet_file))
-sample_lut = sample_sheet.set_index('sample_id')
+sample_lut = sample_sheet.set_index('section_name')  # Ensure section_name is set as the index
 
+# Verify the content of sample_lut
+print(sample_lut.head())
 
 # -- Load data
 # Multiple samples as a dictionary seems like an okay idea
 adata_dict = {}
 
 for sample in sample_list:
-    sample_name = sample_lut.loc[sample, 'sample_name']
-    adata_dict[sample] = ad.read(os.path.join(h5ad_dir, 'raw', f'{sample_name}_raw.h5ad'))
+    try:
+        section_name = sample_lut.loc[sample, 'sample_name']
+        adata_dict[sample] = ad.read(os.path.join(h5ad_dir, 'raw', f'{section_name}_raw.h5ad'))
+    except KeyError as e:
+        print(f"Sample {sample} not found in sample_lut: {e}")
 
 # Add some info for plotting
 # And make a sample patient LUT
 sample_donor_lut = {}
 
-for sample in sample_list:
+for sample in sample_list: # maybe add unique sample ID here (?)
     adata_dict[sample].obs['assay_id'] = sample
     adata_dict[sample].obs['donor_id'] = sample_lut.loc[sample, 'patient_id']
     sample_donor_lut[sample] = sample_lut.loc[sample, 'patient_id']
@@ -332,7 +341,7 @@ plot_key = 'n_cells_by_counts'
 medians, axs = prepare_custom_violin(adata_per_subtype, plot_key=plot_key, obs=False)
 
 # Define a function for extracting a df from something in var 
-def extract_column_var(plot_key, subtype_in_uns=True, sample_id_key='sample_id'):
+def extract_column_var(plot_key, subtype_in_uns=True, sample_id_key='sample_name'): # sample_id
     # Extract a dataframe with n_cells_by_counts for every sample, concat per subtype
     n_cells_by_counts_dict = {}
     for sample in adata_dict:
@@ -341,9 +350,9 @@ def extract_column_var(plot_key, subtype_in_uns=True, sample_id_key='sample_id')
         else:
             subtype = 'PCa'
         tmp = adata_dict[sample].var[plot_key]
-        add_sample_col = pd.Series(adata_dict[sample].uns['metadata'][sample_id_key], name = 'sample').repeat(len(tmp))
+        add_sample_col = pd.Series(adata_dict[sample].uns['metadata'][sample_id_key], name = 'sample_name').repeat(len(tmp)) # sample
         tmp_df = pd.concat([tmp.reset_index(drop=True), add_sample_col.reset_index(drop=True)], axis=1)
-        tmp_df['sample'] = tmp_df['sample'].astype('category')
+        tmp_df['sample_name'] = tmp_df['sample_name'].astype('category')
         if not subtype in n_cells_by_counts_dict.keys():
             n_cells_by_counts_dict[subtype] = tmp_df
         else:
@@ -358,8 +367,8 @@ def plot_violin_seaborn(extracted_df_dict, plot_key, medians_per_subtype, axs, t
     # Make the actual plot
     for n, (subtype, ax) in enumerate(zip(all_subtypes, axs)):
         sns.violinplot(data = extracted_df_dict[subtype], 
-                    x = 'sample', y = plot_key, stripplot=False, ax = ax, title = subtype, linewidth=1, palette=plotting_colors[subtype], 
-                    inner = None, order=sorted(extracted_df_dict[subtype]['sample'].unique()), scale='width')
+                    x = 'sample_name', y = plot_key, stripplot=False, ax = ax, title = subtype, linewidth=1, palette=plotting_colors[subtype], 
+                    inner = None, order=sorted(extracted_df_dict[subtype]['sample_name'].unique()), scale='width') #sample
         for i, collection in enumerate(ax.collections):  # Adjust the colors of the violin
             fill_color = collection.get_facecolor()
             darkened_color = fill_color.copy()
@@ -410,11 +419,11 @@ for sample in adata_dict:
     n_genes = [len(adata_dict[sample].var_names.unique())]
     median_genes = [adata_dict[sample].obs['n_genes_by_counts'].median()]
     median_pct_counts_mt = [adata_dict[sample].obs['pct_counts_mt'].median()]
-    add_sample_col = [adata_dict[sample].uns['metadata']['sample_id']]
+    add_sample_col = [adata_dict[sample].uns['metadata']['sample_name']]
     pct_low_q = [sum(adata_dict[sample].obs['low_qc'] != 'pass')/adata_dict[sample].obs.shape[0]*100]
-    tmp_df = pd.DataFrame({'sample': add_sample_col, 'in_tissue': in_tissue, 'n_counts': n_counts, 'median_counts': median_counts,
+    tmp_df = pd.DataFrame({'sample_name': add_sample_col, 'in_tissue': in_tissue, 'n_counts': n_counts, 'median_counts': median_counts,
                             'n_genes': n_genes, 'median_genes': median_genes, 'median_pct_counts_mt': median_pct_counts_mt, 'pct_low_q': pct_low_q})
-    tmp_df['sample'] = tmp_df['sample'].astype('category')
+    tmp_df['sample_name'] = tmp_df['sample_name'].astype('category')
     if not subtype in barplot_dict.keys():
         barplot_dict[subtype] = tmp_df
     else:
@@ -429,8 +438,8 @@ medians, axs = prepare_custom_violin(adata_per_subtype, plot_key='n_cells_by_cou
 def plot_seaborn_barplot(barplot_dict, plot_key, axs, title=None, all_subtypes=all_subtypes):
     for n, (subtype, ax) in enumerate(zip(all_subtypes, axs)):
         sns.barplot(data = barplot_dict[subtype], 
-                x='sample', y=plot_key, ax = ax, linewidth=1, palette=plotting_colors[subtype], 
-                order=sorted(barplot_dict[subtype]['sample'].unique()))
+                x='sample_name', y=plot_key, ax = ax, linewidth=1, palette=plotting_colors[subtype], 
+                order=sorted(barplot_dict[subtype]['sample_name'].unique()))
         for i, bar in enumerate(ax.patches):  # Adjust the colors of the bar
             # Get the RGBA values of the fill color
             fill_color = bar.get_facecolor()
@@ -441,7 +450,7 @@ def plot_seaborn_barplot(barplot_dict, plot_key, axs, title=None, all_subtypes=a
             fill_color[-1] = 0.8 # make the fill color a bit transparent
             bar.set_color(tuple(fill_color))
             bar.set_edgecolor(tuple(darkened_color))
-            sample_index = sorted(barplot_dict[subtype]['sample'].unique())[i]
+            sample_index = sorted(barplot_dict[subtype]['sample_name'].unique())[i]
             if sample_index in highlight_samples:  # If it's an adj_benign sample: mark this sample with slightly lighter color & dashed outline
                 bar.set_linestyle('dashed')
                 fill_color[-1] = 0.6  # make the fill color a bit transparent
@@ -505,7 +514,7 @@ barplot_df = pd.concat(barplot_dict.values(), ignore_index=True)
 
 # Get plotting colors in the right order
 plotting_colors_all = []
-for sample in list(barplot_df['sample']):
+for sample in list(barplot_df['sample_name']):
     patient_id = sample_donor_lut[sample]
     color = patient_colors[patient_id]
     plotting_colors_all.append(color)
@@ -520,10 +529,10 @@ for cat, color in patient_colors.items():
 # Plotting
 fig, axs = plt.subplots(ncols=2, figsize=(4*2, 4))
 
-sns.scatterplot(barplot_df, x='median_counts', y='median_genes', hue='sample', palette=plotting_colors_all, ax=axs[0], legend=False, linewidth=0, alpha=0.8)
+sns.scatterplot(barplot_df, x='median_counts', y='median_genes', hue='sample_name', palette=plotting_colors_all, ax=axs[0], legend=False, linewidth=0, alpha=0.8)
 axs[0].set_title('Genes vs counts per spot', fontweight='bold')
 
-sns.scatterplot(barplot_df, x='median_counts', y='median_pct_counts_mt', hue='sample', palette=plotting_colors_all, ax=axs[1], legend=False, linewidth=0, alpha=0.8)
+sns.scatterplot(barplot_df, x='median_counts', y='median_pct_counts_mt', hue='sample_name', palette=plotting_colors_all, ax=axs[1], legend=False, linewidth=0, alpha=0.8)
 axs[1].set_title('Percentage MT vs counts per spot', fontweight='bold')
 
 plt.suptitle(f"Median number of genes / percentage mitochondrial counts per spot vs counts", fontweight='bold', y=1.02, x=0.5, ha='center')

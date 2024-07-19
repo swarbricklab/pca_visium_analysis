@@ -43,7 +43,7 @@ parser.add_argument("--data_dir", help="Path to raw data")
 parser.add_argument("--res_dir", help="Path to results directory")
 parser.add_argument("--h5ad_dir", help="Path to directory for .h5ad output files")
 parser.add_argument("--project_dir", help="Project directory (root)")
-parser.add_argument("--sample_id", help="Sample ID")
+parser.add_argument("--section_name", help="Section name")
 parser.add_argument("--unique_id", help="Unique sample ID")
 parser.add_argument("--seed", help="Seed", type=int)
 
@@ -65,17 +65,17 @@ args = vars(parser.parse_args())
 ## res_dir = os.path.join(project_dir, repo, "results")
 ## h5ad_dir = os.path.join(project_dir, repo, "data", "anndata_objects")
 ## sample_dir = os.path.join(project_dir, repo,  'config')
-## sample_id = "20033"
+## section_name = "20033"
 ## use_data = "log_norm"
 
 # --- Arguments
 data_dir = args["data_dir"]
 res_dir = args["res_dir"]
 h5ad_dir=args["h5ad_dir"]
-sample_id=args["sample_id"]
+section_name=args["section_name"]
 
 project_dir=args["project_dir"]
-use_data=args["use_data"]
+use_data="log_norm"
 
 # --- Get some info from the sample sheet
 
@@ -84,10 +84,10 @@ sample_dir = os.path.join(project_dir, 'config')
 sample_sheet_file = 'sample_sheet.csv'
 
 sample_sheet = pd.read_csv(os.path.join(sample_dir, sample_sheet_file))
-sample_lut = sample_sheet.set_index('sample_id')
+sample_lut = sample_sheet.set_index('section_name')
 
-sample_name = sample_lut.loc[sample_id, 'sample_name']
-sample_type = sample_lut.loc[sample_id, 'type']
+sample_name = sample_lut.loc[section_name, 'sample_name']
+sample_type = sample_lut.loc[section_name, 'type']
 
 
 # -- Load data
@@ -203,18 +203,18 @@ for cell_type in gene_dict:
             ax2 = plt.subplot(nrows, ncols, n * 2 + 2)
             # Plot
             sc.pl.spatial(adata, color=None, size=spot_size, bw=False, alpha_img=1, cmap=cmap_adj, layer=use_layer,
-                crop_coord=coords, title=f'{sample_id} - H&E', ax=ax1, vmin=vmin)
+                crop_coord=coords, title=f'{section_name} - H&E', ax=ax1, vmin=vmin)
             # add two new subplots iteratively
             ax = plt.subplot(nrows, ncols, n + 1)
             # Plot
             sc.pl.spatial(adata, color=gene, size=spot_size, bw=False, alpha_img=0.5, cmap=cmap_adj, layer=use_layer,
-                crop_coord=coords, title=f'{sample_id} - {gene}', ax=ax2, vmin=vmin)
+                crop_coord=coords, title=f'{section_name} - {gene}', ax=ax2, vmin=vmin)
         else:
             n+=1
             ax = plt.subplot(nrows, ncols, n + 1)
             # Plot
             sc.pl.spatial(adata, color=gene, size=spot_size, bw=False, alpha_img=0.5, cmap=cmap_adj, layer=use_layer,
-                crop_coord=coords, title=f'{sample_id} - {gene}', ax=ax, vmin=vmin)
+                crop_coord=coords, title=f'{section_name} - {gene}', ax=ax, vmin=vmin)
     plt.subplots_adjust(hspace=0.3, wspace=0.1)
 
 
@@ -226,7 +226,7 @@ os.makedirs(qc_dir, exist_ok=True)
 
 os.chdir(qc_dir)
 
-filename = f"{sample_id}_marker_genes_spatial.pdf"
+filename = f"{section_name}_marker_genes_spatial.pdf"
 
 today = date.today()
 today = today.strftime("%Y%m%d")
@@ -250,8 +250,8 @@ sc.tl.score_genes(adata = adata, gene_list = Glial_gene_list, ctrl_size=50, gene
 
 # Plot spatial plots for PNS_glial_score
 # spot_size = 100
-sc.pl.spatial(adata, color='PNS_glial_score',  title=f'{sample_id} - PNS-glial', bw=False, alpha_img=0.5, cmap=cmap_adj)
-plt.savefig(os.path.join(out_dir, sample_id + '_PNS_glial_score_no_Glial_exp_genes_addDCN.pdf'))
+sc.pl.spatial(adata, color='PNS_glial_score',  title=f'{section_name} - PNS-glial', bw=False, alpha_img=0.5, cmap=cmap_adj)
+plt.savefig(os.path.join(out_dir, section_name + '_PNS_glial_score_no_Glial_exp_genes_addDCN.pdf'))
 plt.close()
 
 # pnCAFs
@@ -259,8 +259,8 @@ subset_gene_table = gene_table[gene_table['cell_type'] == 'pnCAFs']
 pnCAFs_gene_list = subset_gene_table['gene'].values
 sc.tl.score_genes(adata = adata, gene_list = pnCAFs_gene_list, ctrl_size=50, gene_pool=None, n_bins=25, score_name='pnCAFs_score', random_state=0, copy=False, use_raw=None)
 
-sc.pl.spatial(adata, color='pnCAFs_score', title=f'{sample_id} - pnCAFs', bw=False, alpha_img=0.5, cmap=cmap_adj)
-plt.savefig(os.path.join(out_dir, sample_id + '_pnCAFs_score_no_Glial_exp_genes_addDCN.pdf'))
+sc.pl.spatial(adata, color='pnCAFs_score', title=f'{section_name} - pnCAFs', bw=False, alpha_img=0.5, cmap=cmap_adj)
+plt.savefig(os.path.join(out_dir, section_name + '_pnCAFs_score_no_Glial_exp_genes_addDCN.pdf'))
 plt.close()
 
 # NPF like (out of curiosity)
@@ -268,8 +268,8 @@ subset_gene_table = gene_table[gene_table['cell_type'] == 'NPF_like']
 pnCAFs_gene_list = subset_gene_table['gene'].values
 sc.tl.score_genes(adata = adata, gene_list = pnCAFs_gene_list, ctrl_size=50, gene_pool=None, n_bins=25, score_name='NPF_score', random_state=0, copy=False, use_raw=None)
 
-sc.pl.spatial(adata, color='NPF_score', title=f'{sample_id} - NPF', bw=False, alpha_img=0.5, cmap=cmap_adj)
-plt.savefig(os.path.join(out_dir, sample_id + '_NPF_score_no_Glial_exp_genes_addDCN.pdf'))
+sc.pl.spatial(adata, color='NPF_score', title=f'{section_name} - NPF', bw=False, alpha_img=0.5, cmap=cmap_adj)
+plt.savefig(os.path.join(out_dir, section_name + '_NPF_score_no_Glial_exp_genes_addDCN.pdf'))
 plt.close()
 
 
@@ -278,31 +278,31 @@ plt.close()
 # pnCAFs_gene_list = subset_gene_table['gene'].values
 # sc.tl.score_genes(adata = adata, gene_list = pnCAFs_gene_list, ctrl_size=50, gene_pool=None, n_bins=25, score_name='pnCAFs_cepo_score', random_state=0, copy=False, use_raw=None)
 # 
-# sc.pl.spatial(adata, color='pnCAFs_score', title=f'{sample_id} - pnCAFs_cepo', bw=False, alpha_img=0.5, cmap=cmap_adj)
-# plt.savefig(os.path.join(out_dir, sample_id + '_pnCAFs_cepo_score.pdf'))
+# sc.pl.spatial(adata, color='pnCAFs_score', title=f'{section_name} - pnCAFs_cepo', bw=False, alpha_img=0.5, cmap=cmap_adj)
+# plt.savefig(os.path.join(out_dir, section_name + '_pnCAFs_cepo_score.pdf'))
 # plt.close()
 
 # save values as csv file ----
 selected_columns = ['PNS_glial_score', 'pnCAFs_score', 'NPF_score']  # Replace with actual column names
 score_df = pd.DataFrame(adata.obs[selected_columns])
-score_df['sample_id'] = sample_id
+score_df['section_name'] = section_name
 score_df['barcode_id'] = adata.obs_names
 
-score_df.to_csv(os.path.join(out_dir, sample_id + "_PNS_glial_pnCAF_scores_no_Glial_exp_genes_addDCN.csv"), index=False)
+score_df.to_csv(os.path.join(out_dir, section_name + "_PNS_glial_pnCAF_scores_no_Glial_exp_genes_addDCN.csv"), index=False)
 
 # ADD PATH ANNOTATION TO OBJECT AND RESAVE -----------------------------------------------------------
 
 # Link to histo annotations
 
-histo_file = os.path.join(project_dir, "data", "20240318_reviewed_histo_annotation_FFPE_v1", sample_name + "_Histology_Reviewed.csv")
+histo_file = os.path.join(project_dir, "data", "20240318_reviewed_histo_annotation_FFPE", sample_name + "_Histology_Reviewed.csv")
 
 df = pd.read_csv(os.path.join(histo_file), index_col = 0)
-df['sample_id'] = sample_id
+df['section_name'] = section_name
 df['sample_type'] = sample_type
 
 adata.obs[df.columns] = df
 
 # save object
-ad.AnnData.write(adata, filename=os.path.join(h5ad_dir, 'log_norm', f"{sample_id}_log_norm_meta.h5ad"))
+ad.AnnData.write(adata, filename=os.path.join(h5ad_dir, 'log_norm', f"{section_name}_log_norm_meta.h5ad"))
 
 print("Script succesfully completed")

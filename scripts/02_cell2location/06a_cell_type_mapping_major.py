@@ -41,7 +41,7 @@ parser.add_argument("--projectName", help="Main project name")
 parser.add_argument("--repo", help="Repo name")
 parser.add_argument("--exp", help="Exp name")
 parser.add_argument("--analysis", help="Analysis step name")
-parser.add_argument("--sample_id", help="Sample ID")
+parser.add_argument("--section_name", help="Section name")
 parser.add_argument("--h5ad_dir", help="Path to directory for .h5ad output files - Visium raw data")
 parser.add_argument("--model_dir", help="Path to directory for output files from model training")
 
@@ -52,13 +52,13 @@ projectName = args["projectName"]
 repo = args["repo"]
 exp = args["exp"]
 analysis = args["analysis"]
-sample_id = args["sample_id"]
+section_name = args["section_name"]
 h5ad_dir = args["h5ad_dir"]   # /share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/data/anndata_objects/
 model_dir = args["model_dir"]   # /share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/data/anndata_objects/
 
 # Define directory paths
 repoDir = os.path.join('/share/ScratchGeneral/evaapo/projects/', projectName, repo)
-resultDir = os.path.join(repoDir, "results", exp, analysis, sample_id)
+resultDir = os.path.join(repoDir, "results", exp, analysis, section_name)
 objectDir = os.path.join(resultDir, "objects")
 figDir = os.path.join(resultDir, "figures")
 tabDir = os.path.join(resultDir, "tables")
@@ -79,7 +79,7 @@ sample_sheet_file = 'sample_sheet.csv'
 sample_sheet = pd.read_csv(os.path.join(sample_dir, sample_sheet_file))
 
 # Filter the DataFrame based on the condition sample_id == sample_id
-filtered_df = sample_sheet[sample_sheet['sample_id'] == sample_id]
+filtered_df = sample_sheet[sample_sheet['section_name'] == section_name]
 
 # Extract the sample_name from the first row (assuming there's only one match)
 file_id = filtered_df['sample_name'].iloc[0]
@@ -195,7 +195,7 @@ adata_vis = mod.export_posterior(
 mod.save(os.path.join(objectDir, 'model_output'), overwrite=True)
 
 # Save anndata object with results
-adata_file = f"{sample_id}_cell2location.h5ad"
+adata_file = f"{section_name}_cell2location.h5ad"
 adata_vis.write(os.path.join(objectDir, adata_file))
 
 # Can load again like this

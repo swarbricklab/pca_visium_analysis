@@ -14,12 +14,12 @@ projectName=$2
 repo=$3
 exp=$4
 analysis=$5
-sample_id=$6
+section_name=$6
 environment=$7
 
 # Paths to downstream scripts
-#h5ad_dir=$8
-#model_dir=$9
+h5ad_dir=$8
+model_dir=$9
 
 # load environment
 conda activate "$environment"
@@ -31,6 +31,6 @@ $function_script_file \
     --repo $repo \
     --exp $exp \
     --analysis $analysis \
-    --sample_id $sample_id \
-   ###--h5ad_dir $h5ad_dir \
-   ###--model_dir $model_dir \
+    --section_name $section_name \
+    --h5ad_dir $h5ad_dir \
+    --model_dir $model_dir \

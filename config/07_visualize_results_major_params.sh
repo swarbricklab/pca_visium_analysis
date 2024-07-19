@@ -8,7 +8,7 @@ projectName="PCa_Visium"
 repo="pca_visium_analysis"
 # 03 EXP CODE
 #exp="02_cell2location"
-exp="03_mengxiao_data_PMID_35948708"
+exp="02_cell2location"
 # 04 ANALYSIS
 analysis="07_visualize_results_major" # change name of analysis
 # 05 SAMPLE ID
@@ -20,3 +20,8 @@ environment="cell2location"
 # Paths to downstream scripts
 h5ad_dir="/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/data/anndata_objects/"
 model_dir="/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/${exp}/05_train_model_major/figures/reference_signatures/"
+
+# Visium sample sheet: contains the names of the visium samples
+# config_dir="/$project_dir/config"
+config_dir="/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config"
+visium_sample_sheet="$config_dir/sample_sheet.csv"
