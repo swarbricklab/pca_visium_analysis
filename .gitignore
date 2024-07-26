@@ -1,3 +1,8 @@
 logs/
 *.pdf
 scripts/submit_brenner.sh
+scripts/02_cell2location/colocalisation_test.R
+scripts/02_cell2location/colocalisation_test_latest.R
+scripts/02_cell2location/correlation_analysis_test.R
+scripts/02_cell2location/test.py
+scripts/03_mengxiao_data_PMID_35948708/01_wolfpack_submission_doesNOTwork.sh
