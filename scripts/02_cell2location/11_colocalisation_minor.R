@@ -49,30 +49,47 @@ type_cols_darker <- c(
 
 # read in histopath data as a df ----------
 
-# link to histo annotations (copied manually from Dropbox) - only 6 files have it:
-histo_path <- paste0(projectDir, "/", repo, "/data/20240318_reviewed_histo_annotation_FFPE_v1/")
+# link to histo annotations (copied manually from Dropbox):
+histo_path <- paste0(projectDir, "/", repo, "/data/20240318_reviewed_histo_annotation_FFPE/")
 
 histo_df <- NULL
 
-for(file in unique(list.files(histo_path, full.name=TRUE))){
+# Get the list of files and filter for those ending in C1, C2, or containing 20033
+file_list <- list.files(histo_path, full.names = TRUE)
+filtered_files <- file_list[grepl("C[12]_Histology_Reviewed\\.csv$|20033", file_list)]
+
+for(file in unique(filtered_files)){
   print(file)
 
   temp_df <- read.csv(file)
-
-  # Remove everything before one letter one digit pattern at the start (including the pattern) and everything after "_Histology_Reviewed.csv"
-  sample_id <- sub(".*/([A-Za-z][0-9])_", "", file)
-  sample_id <- sub("_Histology_Reviewed.csv", "", sample_id)
+  
+  # Check if the file is one of the special cases
+  if(grepl("PCa20130_C1_20272_C2|PCa20153_C1_20128_C1", file)) {
+    # Use the sample_id from the file itself
+    sample_id <- temp_df$sample_id
+  } else {
+    # Remove everything before one letter one digit pattern at the start (including the pattern) and everything after "_Histology_Reviewed.csv"
+    sample_id <- sub(".*/([A-Za-z][0-9])_", "", file)
+    sample_id <- sub("_Histology_Reviewed.csv", "", sample_id)
+    
+    # Swap _C1 for -1 and _C2 for -2
+    sample_id <- sub("_C1", "-1", sample_id)
+    sample_id <- sub("_C2", "-2", sample_id)
+  }
 
   temp_df$sample_id <- sample_id
 
   histo_df <- rbind(histo_df, temp_df)
-
 }
+
 
 # > table(histo_df$sample_id)
 # 
-# 19617-2   20033 20111-2 20130-2 20153-2 20216-1
-#    1546    2941    2213    1477    1248    1718
+# 19617-2   20033 20111-2 20128-1 20130-1 20130-2 20153-1 20153-2 20216-1 20272-2
+#    1546    2941    2213    2186    2152    1477    1284    1248    1718    1573
+# Exclude
+#    1805
+
 
 # path to config file used in cell2location - for sample ids --------------------
 configFile = paste0(projectDir, repo, "/config/sample_sheet.csv")
@@ -80,20 +97,20 @@ configFile = paste0(projectDir, repo, "/config/sample_sheet.csv")
 samples_config <- read.csv(configFile)
 
 # don't include Batch 1 samples, they are low QC
-samples_config_sub <- samples_config %>% filter(batch == 2)
+samples_config_sub <- samples_config %>% filter(batch != 1)
 
 df <- NULL
 
-for (sample_id in unique(samples_config_sub$sample_id)){
+for (section_name in unique(samples_config_sub$section_name)){
 
-  print(sample_id)
+  print(section_name)
 
   # path to cell2location (Cell type major) - per sample
-  prop_df <- read.csv(paste0("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/02_cell2location/03a_cell_type_mapping/", sample_id, "/objects/q05_cell_abundance_w_sf.csv"))
-  prop_df$sample_id <- sample_id
+  prop_df <- read.csv(paste0("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/02_cell2location/03a_cell_type_mapping/", section_name, "/objects/q05_cell_abundance_w_sf.csv"))
+  prop_df$section_name <- section_name
 
   # Extracting the type corresponding to the sample_id
-  core_type <- samples_config_sub$type[samples_config_sub$sample_id == sample_id]
+  core_type <- samples_config_sub$type[samples_config_sub$section_name == section_name]
   prop_df$type <- core_type
   
   # prop_df <- prop_df %>% remove_rownames %>% column_to_rownames(var="X")
@@ -104,47 +121,60 @@ for (sample_id in unique(samples_config_sub$sample_id)){
 }
 
 # Given vector of column names to exclude
-exclude_cols <- c("Barcode", "sample_id", "type")
+exclude_cols <- c("Barcode", "section_name", "type")
 
 # Extract column names not found in exclude_cols
 celltypes <- names(df)[!names(df) %in% exclude_cols]
 
-df_tidy <- df %>% pivot_longer(celltypes, names_to = "celltype_major_v2", values_to = "c2l_value")
+df_tidy <- df %>% pivot_longer(celltypes, names_to = "celltype_minor_v2", values_to = "c2l_value")
 
-        # use proportions moving forward, a bit more interpretable.. 
-        df_tidy <- df_tidy %>%
-          group_by(sample_id, Barcode) %>%
-          mutate(prop_value = c2l_value / sum(c2l_value)) %>% select(-c2l_value)
+      #  # use proportions moving forward, a bit more interpretable.. 
+      #  df_tidy <- df_tidy %>%
+      #    group_by(sample_id, Barcode) %>%
+      #    mutate(prop_value = c2l_value / sum(c2l_value)) %>% select(-c2l_value)
 
 # Count how many unique barcodes per sample_id
 barcode_counts <- df_tidy %>%
-  group_by(sample_id) %>%
+  group_by(section_name) %>%
   summarise(unique_barcode_count = n_distinct(Barcode))
 
 # > barcode_counts
-# # A tibble: 8 x 2
-#   sample_id unique_barcode_count
-#   <chr>                    <int>
-# 1 19617-2                   1546
-# 2 20033                     2941
-# 3 20111-2                   2213
-# 4 20130-1                   2180
-# 5 20130-2                   1477
-# 6 20153-1                   1517
-# 7 20153-2                   1248
-# 8 20216-1                   1718
+# # A tibble: 10 × 2
+#    section_name         unique_barcode_count
+#    <chr>                               <int>
+#  1 A1_20033                             2941
+#  2 A1_20216_C1                          1718
+#  3 B1_19617_C2                          1546
+#  4 B1_20111_C2                          2213
+#  5 C1_20130_C1                          2180
+#  6 C1_20153_C1                          1517
+#  7 D1_20130_C2                          1477
+#  8 D1_20153_C2                          1248
+#  9 PCa20130_C1_20272_C2                 4753
+# 10 PCa20153_C1_20128_C1                 4247
 
 # combine the two dfs --------------------
 # keeping only the 6 samples that have histo anno
 
 # Merge based on both sample_id and Barcode
-merged_df <- inner_join(df_tidy, histo_df, by = c("sample_id", "Barcode"))
+merged_df <- inner_join(df_tidy, histo_df, by = c("section_name", "Barcode"))
 
-#spread_df <- spread(merged_df, key = celltype_major_v2, value = c2l_value)
-spread_df <- spread(merged_df, key = celltype_major_v2, value = prop_value)
+spread_df <- spread(merged_df, key = celltype_minor_v2, value = c2l_value)
 
-# exclude "Exclude" histology from the analysis - this will be spots outside of the tissue, etc
-spread_df <- spread_df %>% filter(Histology != "Exclude")
+# > dim(spread_df)
+# [1] 20143    21
+
+# exclude "Exclude" histology and blank cells from the analysis - this will be spots outside of the tissue, etc
+spread_df <- spread_df %>% filter(Histology != "Exclude" & Histology != "")
+
+# > dim(spread_df)
+# [1] 16977    21
+
+# exclude "Exclude" in sample_id from the analysis
+spread_df <- spread_df %>% filter(sample_id != "Exclude")
+
+# > dim(spread_df)
+# [1] 16976    21
 
 # ---------------------------------------------------
 # test correlations, with significance --------------
@@ -157,7 +187,7 @@ spread_df <- spread_df %>% filter(Histology != "Exclude")
 calculate_correlations <- function(df, sample_id, celltype) {
   # Filter the data for the given sample_id
   sample_data <- df %>% ungroup() %>%
-    filter(sample_id == !!sample_id) %>% dplyr::select(-sample_id, -Barcode, -type, -Histology)
+    filter(sample_id == !!sample_id) %>% dplyr::select(-sample_id, -Barcode, -type, -Histology, -section_name)
 
   # Select the column of interest for correlation analysis (specified celltype)
   numeric_vector <- sample_data[[celltype]]
@@ -302,11 +332,19 @@ paired_reverse_strings <- rownames[reversed_patterns]
 keep_first_in_pair <- logical(length(paired_reverse_strings))
 
 for (i in seq_along(paired_reverse_strings)) {
+
   pair <- paired_reverse_strings[i]
-  reverse_pair <- paste(rev(strsplit(pair, "_")[[1]]), collapse = "_")
-  if (pair < reverse_pair) {
+  index_pair <- i
+
+  parts <- unlist(strsplit(pair, "_vs_"))
+  # Reverse the parts and reassemble with "_vs_"
+  reverse_pair <- paste(rev(parts), collapse = "_vs_")
+  #reverse_pair <- paste(rev(strsplit(pair, "_")[[1]]), collapse = "_")
+  index_reverse_pair <- which(paired_reverse_strings == reverse_pair)
+
+  if (index_pair < index_reverse_pair) {
     keep_first_in_pair[i] <- TRUE
-  } else if (pair == reverse_pair) {
+  } else if (index_pair == index_reverse_pair) {
     keep_first_in_pair[i] <- TRUE
   }
 }
@@ -335,17 +373,22 @@ anno_df$sample_id <- rownames(anno_df)
 
 anno_cols <- list(
     type = c("cancer" = "#9065cf",
-             "adj_benign" =  "#E0B57C"),
+             "adj_benign" = "#E0B57C"),
     sample_id = c("20216-1" = "#E69F00",
-                    "19617-2" = "#56B4E9",
-                    "20111-2" = "#009E73",
-                    "20033" = "#F0E442",
-                    "20130-2" = "#0072B2",
-                    "20153-2" = "#D55E00")
+                  "19617-2" = "#56B4E9",
+                  "20111-2" = "#009E73",
+                  "20033" = "#F0E442",
+                  "20130-2" = "#0072B2",
+                  "20153-2" = "#D55E00",
+                  "20153-1" = "#CC79A7",   
+                  "20272-2" = "#999999",   
+                  "20130-1" = "#F4A82F",   
+                  "20128-1" = "#A6D854"    
     )
+)
 
 # order the matrix by adjacent benign samples, followed by cancer
-desired_order = c('20111-2', '20153-2', '20130-2', '20033', '20216-1', '19617-2')
+desired_order = c('20111-2', '20153-2', '20130-2', '20033', '20216-1', '19617-2', '20153-1', '20272-2', '20130-1', '20128-1')
 
 # reindex the df with the desired order of columns
 filtered_t_cor_matrix = filtered_t_cor_matrix[, desired_order]
@@ -385,7 +428,7 @@ plot_heatmaps <- function(cor_matrix, asterisk_matrix) {
       col = colorRampPalette(c("dodgerblue4", "white", "red4"))(50),
       na_col = "gray",
       border_color = NA,
-      cellwidth = 14, cellheight = 14, 
+      cellwidth = 11, cellheight = 14, 
       main = paste("Heatmap for", key),
       ylab = "Cell type Pair",
       xlab = "Sample IDs",
@@ -408,7 +451,7 @@ plot_heatmaps <- function(cor_matrix, asterisk_matrix) {
       col = colorRampPalette(c("dodgerblue4", "white", "red4"))(50),
       na_col = "gray",
       border_color = NA,
-      cellwidth = 14, cellheight = 14, 
+      cellwidth = 11, cellheight = 14, 
       main = paste("Heatmap for", key),
       ylab = "Cell type Pair",
       xlab = "Sample IDs",
@@ -440,7 +483,7 @@ p <- pheatmap(
   breaks = seq(min(filtered_combined_cor_df$Correlation), max(filtered_combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
   na_col = "gray",
   border_color = NA,
-  cellwidth = 14, cellheight = 14, 
+  cellwidth = 11, cellheight = 14, 
   main = "Pearson correlation heatmap",
   ylab = "Cell type Pair",
   xlab = "Sample IDs",
@@ -465,7 +508,7 @@ p <- pheatmap(
   breaks = seq(min(filtered_combined_cor_df$Correlation), max(filtered_combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
   na_col = "gray",
   border_color = NA,
-  cellwidth = 14, cellheight = 14, 
+  cellwidth = 11, cellheight = 14, 
   main = "Pearson correlation heatmap",
   ylab = "Cell type Pair",
   xlab = "Sample IDs",
@@ -484,8 +527,7 @@ dev.off()
 
 # reload/create df
 
-#spread_df <- spread(merged_df, key = celltype_major_v2, value = c2l_value)
-spread_df <- spread(merged_df, key = celltype_major_v2, value = prop_value)
+spread_df <- spread(merged_df, key = celltype_minor_v2, value = c2l_value)
 
 # exclude "Exclude" histology from the analysis - this will be spots outside of the tissue, etc
 spread_df <- spread_df %>% filter(Histology != "Exclude")
@@ -493,8 +535,24 @@ spread_df <- spread_df %>% filter(Histology != "Exclude")
 # in Histology column, swap empty spaces with an underscore
 spread_df$Histology <- gsub(" ", "_", spread_df$Histology)
 
+# replace Nerve/Ganglia with Nerve only
+spread_df$Histology <- gsub("Nerve/Ganglia", "Nerve", spread_df$Histology)
+
+# match cases/histology in GG4_Cribriform/Stroma prostate/Vessels
+spread_df$Histology <- gsub("GG4_cribriform", "GG4_Cribriform", spread_df$Histology)
+spread_df$Histology <- gsub("Stroma_prostate", "Stroma_prostatic", spread_df$Histology)
+spread_df$Histology <- gsub("Vessels", "Vessel", spread_df$Histology)
+
 # also remove unannotated spots (just one in this case)
 spread_df <- spread_df[spread_df$Histology != "", ]
+
+# fix transitional
+spread_df$Histology <- gsub("\\(|\\)", "", spread_df$Histology)
+
+# exclude "Exclude" in sample_id from the analysis
+spread_df <- spread_df %>% filter(sample_id != "Exclude")
+# > dim(spread_df)
+# [1] 16976    21
 
 # fix transitional
 spread_df$Histology <- gsub("\\(|\\)", "", spread_df$Histology)
@@ -503,7 +561,7 @@ spread_df$Histology <- gsub("\\(|\\)", "", spread_df$Histology)
 calculate_correlations_histo <- function(df, histology, celltype) {
   # Filter the data for the given sample_id
   sample_data <- df %>% ungroup() %>%
-    filter(Histology == !!histology) %>% select(-sample_id, -Barcode, -type, -Histology)
+    filter(Histology == !!histology) %>% select(-sample_id, -Barcode, -type, -Histology, -section_name)
 
   # Select the column of interest for correlation analysis (specified celltype)
   numeric_vector <- sample_data[[celltype]]
@@ -652,11 +710,19 @@ paired_reverse_strings <- rownames[reversed_patterns]
 keep_first_in_pair <- logical(length(paired_reverse_strings))
 
 for (i in seq_along(paired_reverse_strings)) {
+
   pair <- paired_reverse_strings[i]
-  reverse_pair <- paste(rev(strsplit(pair, "_")[[1]]), collapse = "_")
-  if (pair < reverse_pair) {
+  index_pair <- i
+
+  parts <- unlist(strsplit(pair, "_vs_"))
+  # Reverse the parts and reassemble with "_vs_"
+  reverse_pair <- paste(rev(parts), collapse = "_vs_")
+  #reverse_pair <- paste(rev(strsplit(pair, "_")[[1]]), collapse = "_")
+  index_reverse_pair <- which(paired_reverse_strings == reverse_pair)
+
+  if (index_pair < index_reverse_pair) {
     keep_first_in_pair[i] <- TRUE
-  } else if (pair == reverse_pair) {
+  } else if (index_pair == index_reverse_pair) {
     keep_first_in_pair[i] <- TRUE
   }
 }
@@ -721,7 +787,7 @@ plot_heatmaps <- function(cor_matrix, asterisk_matrix) {
       col = colorRampPalette(c("dodgerblue4", "white", "red4"))(50),
       na_col = "gray",
       border_color = NA,
-      cellwidth = 14, cellheight = 14, 
+      cellwidth = 11, cellheight = 14, 
       main = paste("Heatmap for", key),
       ylab = "Cell type Pair",
       xlab = "Sample IDs",
@@ -743,7 +809,7 @@ plot_heatmaps <- function(cor_matrix, asterisk_matrix) {
       col = colorRampPalette(c("dodgerblue4", "white", "red4"))(50),
       na_col = "gray",
       border_color = NA,
-      cellwidth = 14, cellheight = 14, 
+      cellwidth = 11, cellheight = 14, 
       main = paste("Heatmap for", key),
       ylab = "Cell type Pair",
       xlab = "Sample IDs",
@@ -776,7 +842,7 @@ p <- pheatmap(
   breaks = seq(min(combined_cor_df$Correlation), max(combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
   na_col = "gray",
   border_color = NA,
-  cellwidth = 14, cellheight = 14, 
+  cellwidth = 11, cellheight = 14, 
   main = "Pearson correlation heatmap\nCell2Location - cell type minor",
   ylab = "Cell type Pair",
   xlab = "Sample IDs",
@@ -801,7 +867,7 @@ p <- pheatmap(
   breaks = seq(min(combined_cor_df$Correlation), max(combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
   na_col = "gray",
   border_color = NA,
-  cellwidth = 14, cellheight = 14, 
+  cellwidth = 11, cellheight = 14, 
   main = "Pearson correlation heatmap\nCell2Location - cell type minor",
   ylab = "Cell type Pair",
   xlab = "Sample IDs",

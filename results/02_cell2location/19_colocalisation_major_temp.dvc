@@ -1,0 +1,5 @@
+outs:
+- md5: b481dcd27afc13668e5304531ab4e1a2.dir
+  size: 63980
+  nfiles: 5
+  path: 19_colocalisation_major_temp

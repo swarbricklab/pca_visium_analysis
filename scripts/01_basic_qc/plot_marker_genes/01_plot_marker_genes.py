@@ -124,8 +124,8 @@ spot_size = 1.5
 # gene_file = "top_cepo_10ish_celltype_major_temp_manual.csv"
 # gene_file = "Filtered_FindAllMarkers_top30_celltype_major_temp.csv"
 # gene_file = "top_cepo_10ish_noCDH19_celltype_major_temp_manual.csv"
-# gene_file = "top_cepo_10ish_excludes_genes_expressed_in_Glial_cells_manual.csv" ## this is the last
-gene_file = "cepo_10ish_excludes_genes_expressed_in_Glial_cells_manual_add_DCN.csv" ## add DCN to pnCAFs
+gene_file = "top_cepo_10ish_excludes_genes_expressed_in_Glial_cells_manual.csv" ## this is the last
+# gene_file = "cepo_10ish_excludes_genes_expressed_in_Glial_cells_manual_add_DCN.csv" ## add DCN to pnCAFs
 
 gene_dir = os.path.join(project_dir, 'resources', 'gene_lists')
 
@@ -251,7 +251,7 @@ sc.tl.score_genes(adata = adata, gene_list = Glial_gene_list, ctrl_size=50, gene
 # Plot spatial plots for PNS_glial_score
 # spot_size = 100
 sc.pl.spatial(adata, color='PNS_glial_score',  title=f'{section_name} - PNS-glial', bw=False, alpha_img=0.5, cmap=cmap_adj)
-plt.savefig(os.path.join(out_dir, section_name + '_PNS_glial_score_no_Glial_exp_genes_addDCN.pdf'))
+plt.savefig(os.path.join(out_dir, section_name + '_PNS_glial_score_no_Glial_exp_genes.pdf'))
 plt.close()
 
 # pnCAFs
@@ -260,7 +260,7 @@ pnCAFs_gene_list = subset_gene_table['gene'].values
 sc.tl.score_genes(adata = adata, gene_list = pnCAFs_gene_list, ctrl_size=50, gene_pool=None, n_bins=25, score_name='pnCAFs_score', random_state=0, copy=False, use_raw=None)
 
 sc.pl.spatial(adata, color='pnCAFs_score', title=f'{section_name} - pnCAFs', bw=False, alpha_img=0.5, cmap=cmap_adj)
-plt.savefig(os.path.join(out_dir, section_name + '_pnCAFs_score_no_Glial_exp_genes_addDCN.pdf'))
+plt.savefig(os.path.join(out_dir, section_name + '_pnCAFs_score_no_Glial_exp_genes.pdf'))
 plt.close()
 
 # NPF like (out of curiosity)
@@ -269,7 +269,7 @@ pnCAFs_gene_list = subset_gene_table['gene'].values
 sc.tl.score_genes(adata = adata, gene_list = pnCAFs_gene_list, ctrl_size=50, gene_pool=None, n_bins=25, score_name='NPF_score', random_state=0, copy=False, use_raw=None)
 
 sc.pl.spatial(adata, color='NPF_score', title=f'{section_name} - NPF', bw=False, alpha_img=0.5, cmap=cmap_adj)
-plt.savefig(os.path.join(out_dir, section_name + '_NPF_score_no_Glial_exp_genes_addDCN.pdf'))
+plt.savefig(os.path.join(out_dir, section_name + '_NPF_score_no_Glial_exp_genes.pdf'))
 plt.close()
 
 
@@ -288,7 +288,7 @@ score_df = pd.DataFrame(adata.obs[selected_columns])
 score_df['section_name'] = section_name
 score_df['barcode_id'] = adata.obs_names
 
-score_df.to_csv(os.path.join(out_dir, section_name + "_PNS_glial_pnCAF_scores_no_Glial_exp_genes_addDCN.csv"), index=False)
+score_df.to_csv(os.path.join(out_dir, section_name + "_PNS_glial_pnCAF_scores_no_Glial_exp_genes.csv"), index=False)
 
 # ADD PATH ANNOTATION TO OBJECT AND RESAVE -----------------------------------------------------------
 

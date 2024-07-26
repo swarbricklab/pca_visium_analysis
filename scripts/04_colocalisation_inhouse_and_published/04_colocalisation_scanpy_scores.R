@@ -3,7 +3,7 @@
 
 # conda env: atac_2022
 # date: 2024-04-15
-# last edit: 2024-04-15
+# last edit: 2024-07-22
 
 # 01: SETUP---------------------------------------
 
@@ -56,7 +56,7 @@ type_cols_darker <- c(
 calculate_correlations <- function(df, sample_id, celltype) {
   # Filter the data for the given sample_id
   sample_data <- df %>%
-    filter(sample_id == !!sample_id) %>% select(-sample_id, -Barcode, -type, -Histology)
+    filter(sample_id == !!sample_id) %>% select(-sample_id, -Barcode, -type, -Histology, - section_name)
 
   # Select the column of interest for correlation analysis (specified celltype)
   numeric_vector <- sample_data[[celltype]]
@@ -96,7 +96,7 @@ calculate_correlations <- function(df, sample_id, celltype) {
 calculate_correlations_histo <- function(df, histology, celltype) {
   # Filter the data for the given sample_id
   sample_data <- df %>%
-    filter(Histology == !!histology) %>% select(-sample_id, -Barcode, -type, -Histology)
+    filter(Histology == !!histology) %>% select(-sample_id, -Barcode, -type, -Histology, -section_name)
 
   # Select the column of interest for correlation analysis (specified celltype)
   numeric_vector <- sample_data[[celltype]]
@@ -149,55 +149,75 @@ replace_with_asterisks <- function(p_value) {
 
 # read in histopath data from in-house data as a df ----------
 
-# link to histo annotations (copied manually from Dropbox) - only 6 files have it:
-histo_path <- paste0(projectDir, "/", repo, "/data/20240318_reviewed_histo_annotation_FFPE_v1/")
+# read in histopath data as a df ----------
+# this is a bit convoluted to account for differences in naming conventions
+# and PCa..samples containing an extra sample_id column in Loupe annotation
+
+# link to histo annotations (copied manually from Dropbox):
+histo_path <- paste0(projectDir, "/", repo, "/data/20240318_reviewed_histo_annotation_FFPE/")
 
 histo_df1 <- NULL
 
-for(file in unique(list.files(histo_path, full.name=TRUE))){
+# Get the list of files and filter for those ending in C1, C2, or containing 20033
+file_list <- list.files(histo_path, full.names = TRUE)
+filtered_files <- file_list[grepl("C[12]_Histology_Reviewed\\.csv$|20033", file_list)]
+
+for(file in unique(filtered_files)){
   print(file)
 
   temp_df <- read.csv(file)
-
-  # Remove everything before one letter one digit pattern at the start (including the pattern) and everything after "_Histology_Reviewed.csv"
-  sample_id <- sub(".*/([A-Za-z][0-9])_", "", file)
-  sample_id <- sub("_Histology_Reviewed.csv", "", sample_id)
+  
+  # Check if the file is one of the special cases
+  if(grepl("PCa20130_C1_20272_C2|PCa20153_C1_20128_C1", file)) {
+    # Use the sample_id from the file itself
+    sample_id <- temp_df$sample_id
+  } else {
+    # Remove everything before one letter one digit pattern at the start (including the pattern) and everything after "_Histology_Reviewed.csv"
+    sample_id <- sub(".*/([A-Za-z][0-9])_", "", file)
+    sample_id <- sub("_Histology_Reviewed.csv", "", sample_id)
+    
+    # Swap _C1 for -1 and _C2 for -2
+    sample_id <- sub("_C1", "-1", sample_id)
+    sample_id <- sub("_C2", "-2", sample_id)
+  }
 
   temp_df$sample_id <- sample_id
 
   histo_df1 <- rbind(histo_df1, temp_df)
-
 }
 
-# read in histopath data for Mengxiao's dataset as a df --------------
-histo_path <- paste0(projectDir, "/", repo, "/resources/published_data/PMID_35948708/Count_matrices/Patient_1/Visium_with_annotation")
+# Leave this out for now
+# # read in histopath data for Mengxiao's dataset as a df --------------
+# histo_path <- paste0(projectDir, "/", repo, "/resources/published_data/PMID_35948708/Count_matrices/Patient_1/Visium_with_annotation")
+# 
+# # list all files in subdirectories
+# all_files <- list.files(histo_path, recursive = TRUE, full.names = TRUE)
+# histo_path_files <- grep("Final_Consensus_Annotations", all_files, value=TRUE)
+# 
+# histo_df2 <- NULL
+# 
+# for(file in unique(histo_path_files)){
+#   print(file)
+# 
+#   temp_df <- read.csv(file)
+# 
+#   # rename column (new = old)
+#   temp_df <- temp_df %>% rename(Histology = Final_Annotations)
+# 
+#   # Remove everything before one letter one digit pattern at the start (including the pattern) and everything after "_Histology_Reviewed.csv"
+#   sample_id <- sub(".*Visium_with_annotation/", "", file)
+#   sample_id <- sub("/.*", "", sample_id)
+# 
+#   temp_df$sample_id <- sample_id
+# 
+#   histo_df2 <- rbind(histo_df2, temp_df)
+# 
+# }
+# 
+# # combine the two dfs
+# histo_df <- rbind(histo_df1, histo_df2)
 
-# list all files in subdirectories
-all_files <- list.files(histo_path, recursive = TRUE, full.names = TRUE)
-histo_path_files <- grep("Final_Consensus_Annotations", all_files, value=TRUE)
-
-histo_df2 <- NULL
-
-for(file in unique(histo_path_files)){
-  print(file)
-
-  temp_df <- read.csv(file)
-
-  # rename column (new = old)
-  temp_df <- temp_df %>% rename(Histology = Final_Annotations)
-
-  # Remove everything before one letter one digit pattern at the start (including the pattern) and everything after "_Histology_Reviewed.csv"
-  sample_id <- sub(".*Visium_with_annotation/", "", file)
-  sample_id <- sub("/.*", "", sample_id)
-
-  temp_df$sample_id <- sample_id
-
-  histo_df2 <- rbind(histo_df2, temp_df)
-
-}
-
-# combine the two dfs
-histo_df <- rbind(histo_df1, histo_df2)
+histo_df <- histo_df1
 
 # path to config file used in cell2location - for sample ids --------------------
 configFile = paste0(projectDir, repo, "/config/sample_sheet.csv")
@@ -206,12 +226,13 @@ samples_config <- read.csv(configFile)
 
 # only include sample ids found in histo_df
 # samples_config_sub <- samples_config %>% dplyr::filter(batch == 2 | batch == "mengxiao")
-samples_config_sub <- samples_config %>% dplyr::filter(sample_id %in% all_of(unique(histo_df$sample_id)))
+# samples_config_sub <- samples_config %>% dplyr::filter(sample_id %in% all_of(unique(histo_df$sample_id)))
+samples_config_sub <- samples_config %>% filter(batch != 1)
 
 # now, list all .csv files in results
 # csv_files <- list.files("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/marker_genes/per_sample/20240415", pattern = ".csv", recursive = TRUE, full.names = TRUE)
-csv_files <- list.files("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/marker_genes/per_sample/20240422", pattern = ".csv", recursive = TRUE, full.names = TRUE)
-csv_files <- grep(paste(unique(samples_config_sub$sample_id), collapse = "|"), csv_files, value = TRUE)
+csv_files <- list.files("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/marker_genes/per_sample/20240723", pattern = ".csv", recursive = TRUE, full.names = TRUE)
+csv_files <- grep(paste(unique(samples_config_sub$section_name), collapse = "|"), csv_files, value = TRUE)
 
 df <- NULL
 
@@ -221,10 +242,10 @@ for(file in csv_files){
 
   prop_df <- read.csv(file)
 
-  sample_id <- unique(prop_df[['sample_id']])
+  section_name <- unique(prop_df[['section_name']])
 
   # Extracting the type corresponding to the sample_id
-  core_type <- samples_config_sub$type[samples_config_sub$sample_id == sample_id]
+  core_type <- samples_config_sub$type[samples_config_sub$section_name == section_name]
   prop_df$type <- core_type
   
   names(prop_df)[names(prop_df) == "barcode_id"] <- "Barcode"
@@ -234,7 +255,7 @@ for(file in csv_files){
 }
 
 # Given vector of column names to exclude
-exclude_cols <- c("Barcode", "sample_id", "type")
+exclude_cols <- c("Barcode", "section_name", "type")
 
 # Extract column names not found in exclude_cols
 celltypes <- names(df)[!names(df) %in% exclude_cols]
@@ -243,23 +264,38 @@ df_tidy <- df %>% pivot_longer(celltypes, names_to = "score_name", values_to = "
 
 # Count how many unique barcodes per sample_id
 barcode_counts <- df_tidy %>%
-  group_by(sample_id) %>%
+  group_by(section_name) %>%
   summarise(unique_barcode_count = n_distinct(Barcode))
 
 # combine the two dfs --------------------
 # keeping only the 6 samples that have histo anno
 
 # Merge based on both sample_id and Barcode
-merged_df <- inner_join(df_tidy, histo_df, by = c("sample_id", "Barcode"))
+merged_df <- inner_join(df_tidy, histo_df, by = c("section_name", "Barcode"))
 
 spread_df <- spread(merged_df, key = score_name, value = score_value)
 
-# exclude "Exclude" histology from the analysis - this will be spots outside of the tissue, etc
-spread_df <- spread_df %>% filter(Histology != "Exclude")
+# > dim(spread_df)
+# [1] 20143     8
+
+# exclude "Exclude" histology and blank cells from the analysis - this will be spots outside of the tissue, etc
+spread_df <- spread_df %>% filter(Histology != "Exclude" & Histology != "")
+
+# > dim(spread_df)
+# [1] 16977    8
+
+# exclude "Exclude" in sample_id from the analysis
+spread_df <- spread_df %>% filter(sample_id != "Exclude")
+
+# > dim(spread_df)
+# [1] 16976    8
 
 # ---------------------------------------------------
 # plot scatter plots - per sample id ----------------
 # ---------------------------------------------------
+
+# _PNS_glial_pnCAF_scores_no_Glial_exp_genes_addDCN
+
 cell_types_of_interest <- c('pnCAFs_score', 'PNS_glial_score', 'NPF_score')
 
 plot_list <- list()
@@ -292,7 +328,7 @@ for(sample in unique(spread_df$sample_id)){
 }
 
 
-pdf(paste0(figDir, "per_sample_scatter_plot_with_DCN.pdf"), width=9, height=6)
+pdf(paste0(figDir, "per_sample_scatter_plot_without_DCN.pdf"), width=14, height=10)
 p <- cowplot::plot_grid(plotlist = plot_list)
 print(p)
 dev.off()
@@ -394,23 +430,22 @@ anno_df$sample_id <- rownames(anno_df)
 
 anno_cols <- list(
     type = c("cancer" = "#9065cf",
-             "adj_benign" =  "#E0B57C"),
+             "adj_benign" = "#E0B57C"),
     sample_id = c("20216-1" = "#E69F00",
                   "19617-2" = "#56B4E9",
                   "20111-2" = "#009E73",
                   "20033" = "#F0E442",
                   "20130-2" = "#0072B2",
                   "20153-2" = "#D55E00",
-                  "H1_4" = "#FF5733",
-                  "H1_2" = "#33FF57",
-                  "H2_1" = "#FF33C7",
-                  "H2_2" = "#3357FF",
-                  "H2_5" = "#33FFC7",
-                  "H1_5" = "#5733FF",
-                  "V1_2" = "#7C33FF"))
+                  "20153-1" = "#CC79A7",   
+                  "20272-2" = "#999999",   
+                  "20130-1" = "#F4A82F",   
+                  "20128-1" = "#A6D854"    
+    )
+)
 
 # order the matrix by adjacent benign samples, followed by cancer
-desired_order = c('20111-2', '20153-2', '20130-2', '20033', '20216-1', '19617-2') #, "V1_2", H1_4", "H1_2", "H2_1", "H2_2", "H2_5", "H1_5")
+desired_order = c('20111-2', '20153-2', '20130-2', '20033', '20216-1', '19617-2', '20153-1', '20272-2', '20130-1', '20128-1')
 
 # reindex the df with the desired order of columns
 filtered_t_cor_matrix = filtered_t_cor_matrix[, desired_order]
@@ -438,7 +473,7 @@ p <- pheatmap(
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "scanpy_scores_with_DCN.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "scanpy_scores_without_DCN.pdf"), width = 18, height=18)
 print(p)
 dev.off()
 
@@ -463,7 +498,7 @@ p <- pheatmap(
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "scanpy_scores_clustered_with_DCN.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "scanpy_scores_clustered_without_DCN.pdf"), width = 18, height=18)
 print(p)
 dev.off()
 
@@ -480,9 +515,30 @@ dev.off()
 
 spread_df <- spread(merged_df, key = score_name, value = score_value)
 
-spread_df <- spread_df %>% filter(Histology != "" & Histology != "Exclude")
+# exclude "Exclude" histology from the analysis - this will be spots outside of the tissue, etc
+spread_df <- spread_df %>% filter(Histology != "Exclude")
+spread_df <- spread_df %>% filter(sample_id != "Exclude")
+
+# in Histology column, swap empty spaces with an underscore
+spread_df$Histology <- gsub(" ", "_", spread_df$Histology)
+
+# replace Nerve/Ganglia with Nerve only
+spread_df$Histology <- gsub("Nerve/Ganglia", "Nerve", spread_df$Histology)
+
+# match cases/histology in GG4_Cribriform/Stroma prostate/Vessels
+spread_df$Histology <- gsub("GG4_cribriform", "GG4_Cribriform", spread_df$Histology)
+spread_df$Histology <- gsub("Stroma_prostate", "Stroma_prostatic", spread_df$Histology)
+spread_df$Histology <- gsub("Vessels", "Vessel", spread_df$Histology)
+spread_df$Histology <- gsub("Epi_Benign_\\(transitional\\)", "Epi_Benign_transitional", spread_df$Histology)
+
+# also remove unannotated spots (just one in this case)
+spread_df <- spread_df[spread_df$Histology != "", ]
 
 cell_types_of_interest <- c('pnCAFs_score', 'PNS_glial_score', 'NPF_score')
+
+desired_order = c('Epi_Benign', 'Epi_Benign_transitional', 'GG3', 'GG4', 'GG4_Cribriform', 'Inflammation', 'Stroma_prostatic', 'Stroma_extraprostatic', 'Vessel', 'Nerve', 'Adipose')
+spread_df$Histology <- factor(spread_df$Histology, levels = desired_order)
+spread_df <- spread_df[order(spread_df$Histology), ]
 
 plot_list <- list()
 
@@ -514,22 +570,10 @@ for(feature in unique(spread_df$Histology)){
 
 }
 
-pdf(paste0(figDir, "feature_scatter_plot_with_DCN.pdf"), width=12, height=9)
+pdf(paste0(figDir, "feature_scatter_plot_without_DCN.pdf"), width=12, height=9)
 p <- cowplot::plot_grid(plotlist = plot_list)
 print(p)
 dev.off()
-
-# exclude "Exclude" histology from the analysis - this will be spots outside of the tissue, etc
-spread_df <- spread_df %>% filter(Histology != "Exclude")
-
-# in Histology column, swap empty spaces with an underscore
-spread_df$Histology <- gsub(" ", "_", spread_df$Histology)
-
-# also remove unannotated spots (just one in this case)
-spread_df <- spread_df[spread_df$Histology != "", ]
-
-# fix transitional
-spread_df$Histology <- gsub("\\(|\\)", "", spread_df$Histology)
 
 # List of cell types of interest (lineage 1 comparison to all other cell types at minor level)
 cell_types_of_interest <- c('pnCAFs_score', 'PNS_glial_score', 'NPF_score')
@@ -656,7 +700,7 @@ p <- pheatmap(
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "scanpy_scores_histology_with_DCN.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "scanpy_scores_histology_without_DCN.pdf"), width = 15, height=15)
 print(p)
 dev.off()
 
@@ -681,7 +725,7 @@ p <- pheatmap(
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "scanpy_scores_histology_clustered_with_DCN.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "scanpy_scores_histology_clustered_without_DCN.pdf"), width = 15, height=15)
 print(p)
 dev.off()
 
