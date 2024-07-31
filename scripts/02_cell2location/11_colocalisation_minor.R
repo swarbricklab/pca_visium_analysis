@@ -3,6 +3,8 @@
 
 # conda env: atac_2022
 
+# last edit: 2024-07-31
+
 # 01: SETUP---------------------------------------
 
 # setup
@@ -15,6 +17,7 @@ library(ggpubr)
 library(tidyr)
 library(tibble)
 library(pheatmap)
+library(cowplot)
 
 # for stats
 library(rstatix)
@@ -176,6 +179,84 @@ spread_df <- spread_df %>% filter(sample_id != "Exclude")
 # > dim(spread_df)
 # [1] 16976    21
 
+
+# ---------------------------------------------------
+# plot scatter plot of C2L values - per sample id ---
+
+# order of sample ids
+desired_order = c('20216-1', '20272-2', '20130-1', '20111-2', '20153-2', '20153-1', '20033', '20128-1', '20130-2', '19617-2')
+
+# reorder
+spread_df <- spread_df %>%
+  mutate(sample_id = factor(sample_id, levels = desired_order)) %>%
+  arrange(sample_id)
+
+# Specify the cell types and the four scores to correlate
+cell_types_of_interest <- c('Myelinating_Schwann', 'Satellite')
+scores_of_interest <- c('pnCAFs', 'NPF_like', 'whCAFs', 'uniCAFs')
+
+# Create an empty list to store all plots
+plot_list <- list()
+
+for(sample in unique(spread_df$sample_id)){
+  print(sample)
+  
+  sample_plots <- list()  # List to store plots for this sample
+  
+  for(cell_type in cell_types_of_interest) {
+    print(cell_type)
+    
+    df_subset <- spread_df %>%
+      dplyr::filter(sample == sample_id) %>%
+      select(Barcode, all_of(c(cell_type, scores_of_interest)))
+
+    # Remove rows where all selected columns are NA
+    df_subset <- df_subset %>%
+      filter(rowSums(is.na(df_subset[, -1])) < ncol(df_subset) - 1)
+
+    df_subset <- df_subset %>%
+      remove_rownames() %>%
+      column_to_rownames('Barcode')
+
+    for(score in scores_of_interest) {
+      sp <- ggscatter(df_subset, x = cell_type, y = score,
+                      add = "reg.line",
+                      add.params = list(color = "blue", fill = "lightgray"),
+                      conf.int = TRUE)
+
+      # Calculate label positions
+      calculate_label_positions <- function(df_subset) {
+        label_x <- min(df_subset[[cell_type]], na.rm = TRUE) + 0.2 * diff(range(df_subset[[cell_type]], na.rm = TRUE))
+        label_y <- min(df_subset[[score]], na.rm = TRUE) + 0.5 * diff(range(df_subset[[score]], na.rm = TRUE))
+        return(list(label_x = label_x, label_y = label_y))
+      }
+
+      label_positions <- calculate_label_positions(df_subset)
+
+      # Add correlation coefficient and customize plot
+      sample_plots[[paste0(cell_type, "_", score)]] <- sp +
+        stat_cor(method = "pearson", label.x = label_positions$label_x, label.y = label_positions$label_y, color = "red", size = 2.5) +
+        labs(subtitle = sample) +
+        # labs(subtitle = paste0(cell_type, " vs ", score)) +
+        theme(plot.margin = margin(5, 5, 5, 5))  # Add margin for spacing
+    }
+
+    # Add a blank plot for spacing between cell types
+    if (cell_type != tail(cell_types_of_interest, 1)) {
+        sample_plots[["spacer"]] <- ggplot() + theme_void() + theme(plot.margin = margin(0, 0, 3, 0))  # Smaller space for Satellite
+    }
+  }
+  
+  # Arrange plots for this sample in a single row
+  plot_list[[sample]] <- plot_grid(plotlist = sample_plots, ncol = length(cell_types_of_interest) * length(scores_of_interest) + 1, align = "h")
+}
+
+# Save the plots to a PDF
+pdf(paste0(figDir, "per_sample_scatter_plot.pdf"), width = 18, height = 20)
+plot_grid(plotlist = plot_list, nrow = length(unique(spread_df$sample_id)), align = "v")
+dev.off()
+
+
 # ---------------------------------------------------
 # test correlations, with significance --------------
 # ---------------------------------------------------
@@ -225,7 +306,8 @@ calculate_correlations <- function(df, sample_id, celltype) {
 # List of cell types of interest (lineage 1 comparison to all other cell types at minor level)
 # interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_of_interest_v3.csv")
 # interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_CAFs_all.csv")
-interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_CAFs_subset.csv")
+# interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_CAFs_subset.csv")
+interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_CAFs_Glial_subset.csv")
 
 cell_types_of_interest <- unique(interactions_df$celltype_1)
 
@@ -257,7 +339,6 @@ combined_cor_df$sample_id <- gsub("[A-Za-z_]+_", "", rownames(combined_cor_df))
 # remove the decimal part in the sample_id column
 combined_cor_df$sample_id <- sub("\\..*$", "", combined_cor_df$sample_id)
 
-
 # Extract the interaction patterns from interactions_df
 interaction_patterns <- paste(interactions_df$celltype_1, "vs", interactions_df$celltype_2, sep = "_")
 
@@ -273,43 +354,7 @@ cor_matrix <- cor_matrix %>%
   pivot_wider(names_from = Celltype_Pair, values_from = Correlation)   %>%
   tibble::remove_rownames() %>% column_to_rownames(var = "sample_id")
 
-# Prepare the p-value matrix
-p_value_matrix <- filtered_combined_cor_df %>% dplyr::select(Celltype_Pair, P_Value, sample_id) # %>% tibble::remove_rownames() %>% column_to_rownames(var = "sample_id")
-
-# Assuming your correlation matrix is named cor_matrix
-p_value_matrix_wide <- p_value_matrix %>%
-  pivot_wider(names_from = Celltype_Pair, values_from = P_Value) %>%
-  tibble::remove_rownames() %>% column_to_rownames(var = "sample_id")
-
-# # Count the total number of tests
-# m <- 30*6
-# 
-# # Apply Bonferroni correction to each element in the matrix
-# corrected_matrix <- p_value_matrix_wide * m
-# 
-# # Ensure that the corrected p-values are capped at 1
-# corrected_matrix[corrected_matrix > 1] <- 1
-
-# or adjust with p.adjust(): https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/p.adjust - TO DO
-
-# Function to replace p-values with asterisks
-replace_with_asterisks <- function(p_value) {
-  if (p_value < 0.0001) {
-    return("***")
-  } else if (p_value < 0.001) {
-    return("**")
-  } else if (p_value < 0.01) {
-    return("*")
-  } else {
-    return("")
-  }
-}
-
-# Apply the function to the p-value matrix
-asterisk_matrix <- apply(p_value_matrix_wide, 2, function(column) sapply(column, replace_with_asterisks))
-
 t_cor_matrix <- t(cor_matrix)
-t_asterisk_matrix <- t(asterisk_matrix)
 
 # remove repetitive comparisons, e.g., CAFs_vs_SMCs and SMCs_vs_CAFs - only keep one of them in ----
 # Get the rownames of t_cor_matrix
@@ -360,31 +405,79 @@ filtered_rownames <- rownames[rownames %in% keep_rows]
 # Now you can subset t_cor_matrix using the filtered rownames
 filtered_t_cor_matrix <- t_cor_matrix[filtered_rownames, ]
 
+
+# -------------------------------------------------------
+# Prepare the p-value matrix ----------------------------
+# Extract the row names - these are final cell type comparisons
+row_names_filtered_t_cor_matrix <- rownames(filtered_t_cor_matrix)
+
+# Filter filtered_combined_cor_df based on Celltype_Pair matching row names
+filtered_combined_cor_df_filtered <- filtered_combined_cor_df %>%
+  filter(Celltype_Pair %in% row_names_filtered_t_cor_matrix)
+
+# # Adjust the p-values using the BH method after combining, overwrite the column
+filtered_combined_cor_df_filtered$P_Value <- p.adjust(filtered_combined_cor_df_filtered$P_Value, method = "BH")
+
+p_value_matrix <- filtered_combined_cor_df_filtered %>% dplyr::select(Celltype_Pair, P_Value, sample_id) # %>% tibble::remove_rownames() %>% column_to_rownames(var = "sample_id")
+
+# Assuming your correlation matrix is named cor_matrix
+p_value_matrix_wide <- p_value_matrix %>%
+  pivot_wider(names_from = Celltype_Pair, values_from = P_Value) %>%
+  tibble::remove_rownames() %>% column_to_rownames(var = "sample_id")
+
+
+# Function to replace p-values with asterisks
+replace_with_asterisks <- function(p_value) {
+ if (p_value < 0.001) {
+   return("**")
+ } else if (p_value < 0.01) {
+   return("*")
+ } else {
+   return("")
+ }
+}
+
+# Apply the function to the p-value matrix
+asterisk_matrix <- apply(p_value_matrix_wide, 2, function(column) sapply(column, replace_with_asterisks))
+t_asterisk_matrix <- t(asterisk_matrix)
+
+# -------------------------------------------------------
+# Back to plotting --------------------------------------
+
 # now filter t_asterisk_matrix to match filtered_t_cor_matrix
 # Filter t_asterisk_matrix based on filtered_rownames
 filtered_t_asterisk_matrix <- t_asterisk_matrix[filtered_rownames, ]
 
-# get info from spread_df (should already be filtered, but just in case any samples have squeezed through, somehow)
-spread_df2 <- spread_df %>% ungroup() %>% select(-Barcode)
+# get annotation info from spread_df
+# create the has_vessels and has_nerves columns based on the presence of "Vessel" and "Nerve" in the Histology column
+spread_df2 <- spread_df %>%
+  group_by(sample_id) %>%
+  mutate(
+    has_vessels = if_else(any(grepl("Vessel", Histology)), "yes", "no"),
+    nerve_enriched = if_else(any(grepl("Nerve", Histology)), "yes", "no")
+  ) %>%
+  ungroup()
 
-anno_df <- spread_df2 %>% filter(sample_id %in% all_of(colnames(filtered_t_cor_matrix))) %>% distinct(sample_id, type) %>% remove_rownames() %>% column_to_rownames("sample_id")
-# actuall add sample_id as a column again
-anno_df$sample_id <- rownames(anno_df)
+spread_df3 <- spread_df2 %>% ungroup() %>% select(-Barcode)
+
+anno_df <- spread_df3 %>% filter(sample_id %in% all_of(colnames(filtered_t_cor_matrix))) %>% distinct(sample_id, type, nerve_enriched) %>% remove_rownames() %>% column_to_rownames("sample_id")
 
 anno_cols <- list(
-    type = c("cancer" = "#9065cf",
-             "adj_benign" = "#E0B57C"),
-    sample_id = c("20216-1" = "#E69F00",
-                  "19617-2" = "#56B4E9",
-                  "20111-2" = "#009E73",
-                  "20033" = "#F0E442",
-                  "20130-2" = "#0072B2",
-                  "20153-2" = "#D55E00",
-                  "20153-1" = "#CC79A7",   
-                  "20272-2" = "#999999",   
-                  "20130-1" = "#F4A82F",   
-                  "20128-1" = "#A6D854"    
-    )
+  type = c("cancer" = "#9065CF",      
+           "adj_benign" = "#E0B57C"), 
+  # sample_id = c("20216-1" = "#FBB4AE", # pastel pink
+  #               "19617-2" = "#B3CDE3", # pastel blue
+  #               "20111-2" = "#CCEBC5", # pastel green
+  #               "20033" = "#DECBE4",   # pastel lavender
+  #               "20130-2" = "#FED9A6", # pastel orange
+  #               "20153-2" = "#FFFFCC", # pastel yellow
+  #               "20153-1" = "#E5D8BD", # pastel beige
+  #               "20272-2" = "#FDDAEC", # pastel magenta
+  #               "20130-1" = "#F2F2F2", # light grey
+  #               "20128-1" = "#CCEBC5"  # pastel green
+  #),
+  nerve_enriched = c("yes" = "#B3E2CD", # pastel mint green
+                     "no" = "#FDCCAC")  # pastel peach
 )
 
 # order the matrix by adjacent benign samples, followed by cancer
@@ -422,10 +515,11 @@ plot_heatmaps <- function(cor_matrix, asterisk_matrix) {
       annotation = anno_df,
       annotation_colours = anno_cols,
       display_numbers = asterisk_matrix,
+      breaks = seq(-0.5, 0.5, length.out = 101),
       fontsize_number = 8,
       cluster_rows = FALSE,
       cluster_cols = FALSE,
-      col = colorRampPalette(c("dodgerblue4", "white", "red4"))(50),
+      col = colorRampPalette(c("dodgerblue4", "white", "red4"))(101),
       na_col = "gray",
       border_color = NA,
       cellwidth = 11, cellheight = 14, 
@@ -445,10 +539,11 @@ plot_heatmaps <- function(cor_matrix, asterisk_matrix) {
       annotation = anno_df,
       annotation_colours = anno_cols,
       display_numbers = asterisk_matrix,
+      breaks = seq(-0.5, 0.5, length.out = 101),
       fontsize_number = 8,
       cluster_rows = TRUE,
       cluster_cols = TRUE,
-      col = colorRampPalette(c("dodgerblue4", "white", "red4"))(50),
+      col = colorRampPalette(c("dodgerblue4", "white", "red4"))(101),
       na_col = "gray",
       border_color = NA,
       cellwidth = 11, cellheight = 14, 
@@ -476,11 +571,12 @@ p <- pheatmap(
   annotation = anno_df,
   annotation_colours = anno_cols,
   display_numbers = filtered_t_asterisk_matrix,
+  breaks = seq(-0.5, 0.5, length.out = 101),
   fontsize_number = 8,  # Adjust font size for better visibility
   cluster_rows = FALSE,
   cluster_cols = FALSE,
-  col = colorRampPalette(c("dodgerblue4", "white", "red4"))(50),
-  breaks = seq(min(filtered_combined_cor_df$Correlation), max(filtered_combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
+  col = colorRampPalette(c("dodgerblue4", "white", "red4"))(101),
+  # breaks = seq(min(filtered_combined_cor_df$Correlation), max(filtered_combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
   na_col = "gray",
   border_color = NA,
   cellwidth = 11, cellheight = 14, 
@@ -491,7 +587,7 @@ p <- pheatmap(
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "celltype_minor_cell2location_v3_new.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "ALL_celltype_minor_cell2location.pdf"), width = 15, height=15)
 print(p)
 dev.off()
 
@@ -501,11 +597,12 @@ p <- pheatmap(
   annotation = anno_df,
   annotation_colours = anno_cols,
   display_numbers = filtered_t_asterisk_matrix,
+  breaks = seq(-0.5, 0.5, length.out = 101),
   fontsize_number = 8,  # Adjust font size for better visibility
   cluster_rows = TRUE,
   cluster_cols = TRUE,
-  col = colorRampPalette(c("dodgerblue4", "white", "red4"))(50),
-  breaks = seq(min(filtered_combined_cor_df$Correlation), max(filtered_combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
+  col = colorRampPalette(c("dodgerblue4", "white", "red4"))(101),
+  # breaks = seq(min(filtered_combined_cor_df$Correlation), max(filtered_combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
   na_col = "gray",
   border_color = NA,
   cellwidth = 11, cellheight = 14, 
@@ -516,7 +613,7 @@ p <- pheatmap(
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "celltype_minor_cell2location_clustered_v3_new.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "ALL_celltype_minor_cell2location_clustered.pdf"), width = 15, height=15)
 print(p)
 dev.off()
 
