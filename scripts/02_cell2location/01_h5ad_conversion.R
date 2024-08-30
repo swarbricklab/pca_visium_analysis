@@ -33,7 +33,7 @@ repo="pca_visium_analysis"
 
 # rerun directory - trying to organise PCa analysis
 exp = "02_cell2location"
-analysis = "01_h5ad_conversion"
+analysis = "01_h5ad_conversion_Aug24update" # changed some of the minor/subset annotations (i.e. fixed SMCs mistake) so need to retrain C2L model at minor level.
 
 # directory structure
 resultDir=paste0(projectDir, repo, "/results/", exp, "/", analysis, "/")

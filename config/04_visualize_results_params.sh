@@ -10,7 +10,7 @@ repo="pca_visium_analysis"
 # exp="02_cell2location"
 exp="02_cell2location"
 # 04 ANALYSIS
-analysis="04_visualize_results" # change name of analysis
+analysis="04_visualize_results_Aug24update" # change name of analysis
 # 05 SAMPLE ID
 # sample_id="PCa_atlas"
 

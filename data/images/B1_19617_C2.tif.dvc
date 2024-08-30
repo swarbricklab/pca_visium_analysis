@@ -1,0 +1,12 @@
+md5: f15a2710eeffa127fbc39d7f4add1d15
+frozen: true
+deps:
+- path: 
+    GIMR_GWCCG_230203_ALESWA_10x_Visium_FFPE/230331_A00152_0821_BHW7CNDSX5/B1_19617_C2/images/B1_19617_C2.tif
+  repo:
+    url: git@github.com:swarbricklab/visium.git
+    rev_lock: 02f379415a73b102b87478f93b5473c608016fc8
+outs:
+- md5: 4834ab723812b39dbfbb624363fe5a75
+  size: 548733831
+  path: B1_19617_C2.tif

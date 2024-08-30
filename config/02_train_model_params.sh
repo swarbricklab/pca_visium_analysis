@@ -10,7 +10,7 @@ repo="pca_visium_analysis"
 # exp="02_cell2location"
 exp="02_cell2location"
 # 04 ANALYSIS
-analysis="02_train_model"
+analysis="02_train_model_Aug24update"
 # 05 SAMPLE ID
 sample_id="PCa_atlas"
 #  PATH TO SINGLE CELL REFERENCE

@@ -75,7 +75,7 @@ os.makedirs(qcDir, exist_ok=True)
 # --- Load the single-cell ref
 
 # Use the miniatlas downloaded from cellxgene
-pca_atlas_dir = os.path.join(repoDir, 'results', exp, '01_h5ad_conversion', 'rObjects')
+pca_atlas_dir = os.path.join(repoDir, 'results', exp, '01_h5ad_conversion_Aug24update', 'rObjects')
 pca_atlas_file = 'PCa_merged_filtered.h5ad'
 
 adata_ref = sc.read(os.path.join(pca_atlas_dir, pca_atlas_file))

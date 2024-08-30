@@ -10,7 +10,7 @@ repo="pca_visium_analysis"
 #exp="02_cell2location"
 exp="02_cell2location"
 # 04 ANALYSIS
-analysis="03a_cell_type_mapping"
+analysis="03a_cell_type_mapping_Aug24update"
 # 05 SAMPLE ID
 # sample_id="PCa_atlas"
 
@@ -20,7 +20,6 @@ environment="cell2location"
 # Paths to downstream scripts
 h5ad_dir="/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/data/anndata_objects/"
 model_dir="/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/02_cell2location/02_train_model/figures/reference_signatures/"
-# model_dir="/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/03_mengxiao_data_PMID_35948708/02_train_model/figures/reference_signatures/"
 
 # Visium sample sheet: contains the names of the visium samples
 # config_dir="/$project_dir/config"

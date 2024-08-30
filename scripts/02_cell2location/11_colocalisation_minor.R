@@ -3,7 +3,7 @@
 
 # conda env: atac_2022
 
-# last edit: 2024-07-31
+# last edit: 2024-08-30
 
 # 01: SETUP---------------------------------------
 
@@ -29,7 +29,7 @@ repo="pca_visium_analysis"
 
 # rerun directory - trying to organise PCa analysis
 exp = "02_cell2location"
-analysis = "11_colocalisation_minor"
+analysis = "11_colocalisation_minor_Aug24update"
 
 # directory structure
 resultDir=paste0(projectDir, repo, "/results/", exp, "/", analysis, "/")
@@ -109,7 +109,7 @@ for (section_name in unique(samples_config_sub$section_name)){
   print(section_name)
 
   # path to cell2location (Cell type major) - per sample
-  prop_df <- read.csv(paste0("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/02_cell2location/03a_cell_type_mapping/", section_name, "/objects/q05_cell_abundance_w_sf.csv"))
+  prop_df <- read.csv(paste0("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/results/02_cell2location/03a_cell_type_mapping_Aug24update/", section_name, "/objects/q05_cell_abundance_w_sf.csv"))
   prop_df$section_name <- section_name
 
   # Extracting the type corresponding to the sample_id
@@ -307,7 +307,9 @@ calculate_correlations <- function(df, sample_id, celltype) {
 # interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_of_interest_v3.csv")
 # interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_CAFs_all.csv")
 # interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_CAFs_subset.csv")
-interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_CAFs_Glial_subset.csv")
+
+interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_CAFs_Glial_ECs_subset.csv")
+# interactions_df <- read.csv("/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis/config/minor_interactions_CAFs_Glial_subset.csv")
 
 cell_types_of_interest <- unique(interactions_df$celltype_1)
 
@@ -982,4 +984,4 @@ dev.off()
 writeLines(capture.output(sessionInfo()), paste0(resultDir, "sessionInfo.txt"))
 
 # # full object
-# cells <- readRDS("/share/ScratchGeneral/evaapo/projects/PCa/results/20230714_collate_annotation/02_update_annotation/rObjects/PCa_atlas_annotated_Oct23_update.rds")
+# cells <- readRDS("/share/ScratchGeneral/evaapo/projects/PCa/results/20230714_collate_annotation/02_update_annotation/rObjects/PCa_atlas_annotated_Jul24_update.rds")
