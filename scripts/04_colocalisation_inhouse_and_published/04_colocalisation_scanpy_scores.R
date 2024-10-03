@@ -56,7 +56,7 @@ type_cols_darker <- c(
 calculate_correlations <- function(df, sample_id, celltype) {
   # Filter the data for the given sample_id
   sample_data <- df %>%
-    filter(sample_id == !!sample_id) %>% select(-sample_id, -Barcode, -type, -Histology, - section_name)
+    filter(sample_id == !!sample_id) %>% select(-sample_id, -Barcode, -type, -Histology, -section_name, -has_vessels, -nerve_enriched)
 
   # Select the column of interest for correlation analysis (specified celltype)
   numeric_vector <- sample_data[[celltype]]
@@ -96,7 +96,7 @@ calculate_correlations <- function(df, sample_id, celltype) {
 calculate_correlations_histo <- function(df, histology, celltype) {
   # Filter the data for the given sample_id
   sample_data <- df %>%
-    filter(Histology == !!histology) %>% select(-sample_id, -Barcode, -type, -Histology, -section_name)
+    filter(Histology == !!histology) %>% select(-sample_id, -Barcode, -type, -Histology, -section_name, -has_vessels, -nerve_enriched)
 
   # Select the column of interest for correlation analysis (specified celltype)
   numeric_vector <- sample_data[[celltype]]
@@ -290,6 +290,17 @@ spread_df <- spread_df %>% filter(sample_id != "Exclude")
 # > dim(spread_df)
 # [1] 16976    8
 
+
+# get annotation info from spread_df
+# create the has_vessels and has_nerves columns based on the presence of "Vessel" and "Nerve" in the Histology column
+spread_df2 <- spread_df %>%
+  group_by(sample_id) %>%
+  mutate(
+    has_vessels = if_else(any(grepl("Vessel", Histology)), "yes", "no"),
+    nerve_enriched = if_else(any(grepl("Nerve", Histology)), "yes", "no")
+  ) %>%
+  ungroup() %>% filter(nerve_enriched == "yes")
+
 # ---------------------------------------------------
 # plot scatter plots - per sample id ----------------
 # ---------------------------------------------------
@@ -300,10 +311,10 @@ cell_types_of_interest <- c('pnCAFs_score', 'PNS_glial_score', 'NPF_score')
 
 plot_list <- list()
 
-for(sample in unique(spread_df$sample_id)){
+for(sample in unique(spread_df2$sample_id)){
   print(sample)
 
-  df_subset <- spread_df %>% dplyr::filter(sample == sample_id) %>% select('Barcode', 'pnCAFs_score', 'PNS_glial_score')
+  df_subset <- spread_df2 %>% dplyr::filter(sample == sample_id) %>% select('Barcode', 'pnCAFs_score', 'PNS_glial_score')
   df_subset <- df_subset %>% remove_rownames() %>% column_to_rownames('Barcode')
 
   sp <- ggscatter(df_subset, x='pnCAFs_score', y='PNS_glial_score',
@@ -328,7 +339,7 @@ for(sample in unique(spread_df$sample_id)){
 }
 
 
-pdf(paste0(figDir, "per_sample_scatter_plot_without_DCN.pdf"), width=14, height=10)
+pdf(paste0(figDir, "per_sample_scatter_plot_without_DCN_nerve_enriched.pdf"), width=14, height=10)
 p <- cowplot::plot_grid(plotlist = plot_list)
 print(p)
 dev.off()
@@ -349,11 +360,11 @@ for (cell_type in cell_types_of_interest) {
   print(cell_type)
   
   # Loop through each unique sample_id and calculate the correlations for the current cell type
-  for (sample_id in unique(as.factor(spread_df$sample_id))) {
+  for (sample_id in unique(as.factor(spread_df2$sample_id))) {
     print(sample_id)
     
     # Calculate correlations for the current cell type and sample ID
-    correlation_df <- calculate_correlations(spread_df, sample_id, cell_type)
+    correlation_df <- calculate_correlations(spread_df2, sample_id, cell_type)
 
     # Add cell type and sample_id as columns
     correlation_df$sample_id <- sample_id
@@ -445,11 +456,11 @@ anno_cols <- list(
 )
 
 # order the matrix by adjacent benign samples, followed by cancer
-desired_order = c('20111-2', '20153-2', '20130-2', '20033', '20216-1', '19617-2', '20153-1', '20272-2', '20130-1', '20128-1')
+# desired_order = c('20111-2', '20153-2', '20130-2', '20033', '20216-1', '19617-2', '20153-1', '20272-2', '20130-1', '20128-1')
 
 # reindex the df with the desired order of columns
-filtered_t_cor_matrix = filtered_t_cor_matrix[, desired_order]
-filtered_t_asterisk_matrix = filtered_t_asterisk_matrix[, desired_order]
+# filtered_t_cor_matrix = filtered_t_cor_matrix[, desired_order]
+# filtered_t_asterisk_matrix = filtered_t_asterisk_matrix[, desired_order]
 
 # Create the heatmap using pheatmap
 p <- pheatmap(
@@ -460,9 +471,10 @@ p <- pheatmap(
   fontsize_number = 8,  # Adjust font size for better visibility
   cluster_rows = FALSE,
   cluster_cols = FALSE,
-  col = colorRampPalette(c("dodgerblue4", "white", "red4"))(50),
+  col = colorRampPalette(c("dodgerblue4", "white", "red4"))(101),
  #  breaks = seq(min(filtered_combined_cor_df$Correlation), max(filtered_combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
-  breaks = seq(min(combined_cor_df$Correlation), max(combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
+  # breaks = seq(min(combined_cor_df$Correlation), max(combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
+  breaks = seq(-0.5, 0.5, length.out = 101),
   na_col = "gray",
   border_color = NA,
   cellwidth = 14, cellheight = 14, 
@@ -473,7 +485,7 @@ p <- pheatmap(
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "scanpy_scores_without_DCN.pdf"), width = 18, height=18)
+pdf(paste0(figDir, "scanpy_scores_without_DCN_nerve_enriched.pdf"), width = 18, height=18)
 print(p)
 dev.off()
 
@@ -486,8 +498,9 @@ p <- pheatmap(
   fontsize_number = 8,  # Adjust font size for better visibility
   cluster_rows = TRUE,
   cluster_cols = TRUE,
-  col = colorRampPalette(c("dodgerblue4", "white", "red4"))(50),
-  breaks = seq(min(combined_cor_df$Correlation), max(combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
+  col = colorRampPalette(c("dodgerblue4", "white", "red4"))(101),
+  # breaks = seq(min(combined_cor_df$Correlation), max(combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
+  breaks = seq(-0.5, 0.5, length.out = 101),
   na_col = "gray",
   border_color = NA,
   cellwidth = 14, cellheight = 14, 
@@ -498,7 +511,7 @@ p <- pheatmap(
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "scanpy_scores_clustered_without_DCN.pdf"), width = 18, height=18)
+pdf(paste0(figDir, "scanpy_scores_clustered_without_DCN_nerve_enriched.pdf"), width = 18, height=18)
 print(p)
 dev.off()
 
@@ -534,18 +547,67 @@ spread_df$Histology <- gsub("Epi_Benign_\\(transitional\\)", "Epi_Benign_transit
 # also remove unannotated spots (just one in this case)
 spread_df <- spread_df[spread_df$Histology != "", ]
 
-cell_types_of_interest <- c('pnCAFs_score', 'PNS_glial_score', 'NPF_score')
+# get annotation info from spread_df
+# create the has_vessels and has_nerves columns based on the presence of "Vessel" and "Nerve" in the Histology column
+spread_df <- spread_df %>%
+  group_by(sample_id) %>%
+  mutate(
+    has_vessels = if_else(any(grepl("Vessel", Histology)), "yes", "no"),
+    nerve_enriched = if_else(any(grepl("Nerve", Histology)), "yes", "no")
+  ) %>%
+  ungroup()
 
-desired_order = c('Epi_Benign', 'Epi_Benign_transitional', 'GG3', 'GG4', 'GG4_Cribriform', 'Inflammation', 'Stroma_prostatic', 'Stroma_extraprostatic', 'Vessel', 'Nerve', 'Adipose')
-spread_df$Histology <- factor(spread_df$Histology, levels = desired_order)
-spread_df <- spread_df[order(spread_df$Histology), ]
+
+# visualise all scores with 0.5 as threshold
+p <- ggplot(spread_df, aes(x = pnCAFs_score, y = PNS_glial_score, color = nerve_enriched)) +
+  geom_point() +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = 0.5, linetype = "dashed", color = "red") +
+  theme_minimal()
+
+pdf(paste0(figDir, "all_scores_0.5_threshold.pdf"))
+print(p)
+dev.off()
+
+# with 0 as threshold
+p <- ggplot(spread_df, aes(x = pnCAFs_score, y = PNS_glial_score, color = nerve_enriched)) +
+  geom_point() +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = 0.5, linetype = "dashed", color = "red") +
+  theme_minimal()
+
+pdf(paste0(figDir, "all_scores_0_threshold.pdf"))
+print(p)
+dev.off()
+
+# filter for nerve-enriched samples and filter for signature threshold above >0.5
+spread_df2 <- spread_df %>% 
+              filter(PNS_glial_score > 0.5 & pnCAFs_score > 0.5)
+             # filter(nerve_enriched == "yes") # %>%
+
+
+spread_df2 <- spread_df2 %>% filter(Histology %in% c('Epi_Benign', 'GG3', 'GG4', 'Inflammation', 'Stroma_prostatic', 'Stroma_extraprostatic', 'Vessel', 'Nerve', 'Adipose'))             
+
+cell_types_of_interest <- c('pnCAFs_score', 'PNS_glial_score') #, 'NPF_score')
+
+# desired_order = c('Epi_Benign', 'Epi_Benign_transitional', 'GG3', 'GG4', 'GG4_Cribriform', 'Inflammation', 'Stroma_prostatic', 'Stroma_extraprostatic', 'Vessel', 'Nerve', 'Adipose')
+desired_order = c('Epi_Benign', 'GG3', 'GG4', 'Inflammation', 'Stroma_prostatic', 'Stroma_extraprostatic', 'Vessel', 'Nerve', 'Adipose')
+
+spread_df2$Histology <- factor(spread_df2$Histology, levels = desired_order)
+spread_df2 <- spread_df2[order(spread_df2$Histology), ]
+
+# only include Histology with more than 10 spots
+# spread_df2 <- spread_df2 %>%
+#               group_by(Histology) %>%
+#               filter(n() > 10) %>%
+#               ungroup()
 
 plot_list <- list()
 
-for(feature in unique(spread_df$Histology)){
+for(feature in unique(spread_df2$Histology)){
   print(feature)
 
-  df_subset <- spread_df %>% dplyr::filter(Histology == feature) %>% select('sample_id', 'Barcode', 'pnCAFs_score', 'PNS_glial_score')
+  df_subset <- spread_df2 %>% dplyr::filter(Histology == feature) %>% select('sample_id', 'Barcode', 'pnCAFs_score', 'PNS_glial_score')
   # this will barcodes from multiple samples so there will be duplicates, make them unique
   df_subset$Barcode <- paste(df_subset$Barcode, df_subset$sample_id)
   df_subset <- df_subset %>% remove_rownames() %>% column_to_rownames('Barcode')
@@ -554,7 +616,9 @@ for(feature in unique(spread_df$Histology)){
      add = "reg.line",  # Add regressin line
      add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
      conf.int = TRUE # Add confidence interval
-     )
+     ) + 
+     geom_hline(yintercept = 0.5, linetype = "dashed", color = "red") +
+     geom_vline(xintercept = 0.5, linetype = "dashed", color = "red")
 
   # Add correlation coefficient
   calculate_label_positions <- function(df_subset) {
@@ -570,7 +634,7 @@ for(feature in unique(spread_df$Histology)){
 
 }
 
-pdf(paste0(figDir, "feature_scatter_plot_without_DCN.pdf"), width=12, height=9)
+pdf(paste0(figDir, "feature_scatter_plot_without_DCN_nerve_enriched_filtered_at_0.5.pdf"), width=9, height=6)
 p <- cowplot::plot_grid(plotlist = plot_list)
 print(p)
 dev.off()
@@ -586,11 +650,11 @@ for (cell_type in cell_types_of_interest) {
   print(cell_type)
   
   # Loop through each unique Histology and calculate the correlations for the current cell type
-  for (histology in unique(as.factor(spread_df$Histology))) {
+  for (histology in unique(as.factor(spread_df2$Histology))) {
     print(histology)
     
     # Calculate correlations for the current cell type and sample ID
-    correlation_df <- calculate_correlations_histo(spread_df, histology, cell_type)
+    correlation_df <- calculate_correlations_histo(spread_df2, histology, cell_type)
 
     correlation_df$Histology <- histology
     correlation_df$cell_type <- cell_type
@@ -673,7 +737,8 @@ anno_df <- spread_df %>% filter(Histology %in% all_of(colnames(filtered_t_cor_ma
 
 # order the matrix by histology features
 # desired_order = c("Benign", "Benign*", 'Epi_Benign', 'Epi_Benign_transitional', "Transition_State", "PIN", 'GG1', 'GG2', 'GG3', 'GG4', 'GG4_Cribriform', 'Inflammation', 'Chronic_inflammation', 'Stroma', 'Stroma_prostatic', 'Stroma_extraprostatic', 'Vessel', 'Nerve', 'Adipose', 'Fat')
-desired_order = c('Epi_Benign', 'Epi_Benign_transitional', 'GG3', 'GG4', 'GG4_Cribriform', 'Inflammation', 'Stroma_prostatic', 'Stroma_extraprostatic', 'Vessel', 'Nerve', 'Adipose')
+# desired_order = c('Epi_Benign', 'Epi_Benign_transitional', 'GG3', 'GG4', 'GG4_Cribriform', 'Inflammation', 'Stroma_prostatic', 'Stroma_extraprostatic', 'Vessel', 'Nerve', 'Adipose')
+desired_order = c('Epi_Benign', 'GG3', 'GG4', 'GG4_Cribriform', 'Inflammation', 'Stroma_prostatic', 'Stroma_extraprostatic', 'Vessel', 'Nerve', 'Adipose')
 
 # reindex the df with the desired order of columns
 filtered_t_cor_matrix = filtered_t_cor_matrix[, desired_order]
@@ -688,8 +753,9 @@ p <- pheatmap(
   fontsize_number = 8,  # Adjust font size for better visibility
   cluster_rows = FALSE,
   cluster_cols = FALSE,
-  col = colorRampPalette(c("dodgerblue4", "white", "red4"))(50),
-  breaks = seq(min(combined_cor_df$Correlation), max(combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
+  col = colorRampPalette(c("dodgerblue4", "white", "red4"))(101),
+  # breaks = seq(min(combined_cor_df$Correlation), max(combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
+  breaks = seq(-0.5, 0.5, length.out = 101),
   na_col = "gray",
   border_color = NA,
   cellwidth = 14, cellheight = 14, 
@@ -700,7 +766,7 @@ p <- pheatmap(
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "scanpy_scores_histology_without_DCN.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "scanpy_scores_histology_without_DCN_nerve_enriched.pdf"), width = 15, height=15)
 print(p)
 dev.off()
 
@@ -713,8 +779,9 @@ p <- pheatmap(
   fontsize_number = 8,  # Adjust font size for better visibility
   cluster_rows = TRUE,
   cluster_cols = TRUE,
-  col = colorRampPalette(c("dodgerblue4", "white", "red4"))(50),
-  breaks = seq(min(combined_cor_df$Correlation), max(combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
+  col = colorRampPalette(c("dodgerblue4", "white", "red4"))(101),
+  # breaks = seq(min(combined_cor_df$Correlation), max(combined_cor_df$Correlation), length.out = 51),  # Specify the breaks for the color scale
+  breaks = seq(-0.5, 0.5, length.out = 101),
   na_col = "gray",
   border_color = NA,
   cellwidth = 14, cellheight = 14, 
@@ -725,7 +792,7 @@ p <- pheatmap(
 )
 
 # Print the heatmap plot
-pdf(paste0(figDir, "scanpy_scores_histology_clustered_without_DCN.pdf"), width = 15, height=15)
+pdf(paste0(figDir, "scanpy_scores_histology_clustered_without_DCN_nerve_enriched.pdf"), width = 15, height=15)
 print(p)
 dev.off()
 
