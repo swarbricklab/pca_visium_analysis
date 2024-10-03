@@ -1,0 +1,5 @@
+outs:
+- md5: 4eb00f77d619027d72e377c5f50dad29.dir
+  size: 1779776016
+  nfiles: 7
+  path: 02_train_model_Aug24update

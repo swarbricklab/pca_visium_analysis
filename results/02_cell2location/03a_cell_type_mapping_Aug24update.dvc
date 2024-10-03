@@ -1,0 +1,5 @@
+outs:
+- md5: f05281e1e63922922a0dc484f45deddc.dir
+  size: 2098416760
+  nfiles: 72
+  path: 03a_cell_type_mapping_Aug24update
