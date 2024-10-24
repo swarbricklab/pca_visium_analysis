@@ -1,5 +1,16 @@
+TO DO:  
+
+- [ ] Further deidentify Cansto IDs - need to be removed from scripts and .dvc files!
+- [ ] Create a new repo after updates have been made & remove scripts/data not relevant to paper (i.e. analysis of data from PMID 35948798)  
+- [ ] Add CELLxGENE links (when available)  
+- [ ] Add EGA accession number (when available)
+- [ ] Reference scRNA-seq GitHub repo  
+
+
 # pca_visium_analysis  
-Repo for analysis of the PCa Visium dataset  
+This repository contains code for Visium data processing, downstream analysis, and figure generation for the study titled "Profiling of epithelial functional states and fibroblast phenotypes in hormone therapy-naive localized prostate cancer." 
+
+The Visium data was processed using the scanpy package (v1.9.1) and spatial deconvolution was performed using Cell2Location (v0.1.3).  
 
 ## Data analysed:  
 - In-house Visium samples  
