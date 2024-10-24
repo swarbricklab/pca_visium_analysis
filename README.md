@@ -54,25 +54,42 @@ The Visium data was processed using the scanpy package (v1.9.1) and spatial deco
 - Initial pre-processing (without filtering spots), QC & visualisation
   
 02_cell2location/
-- 01_h5ad_conversion.R: Convert Seurat object to .h5ad  
-- 02_train_model.py: Train cell2location model on PCa scRNA-seq reference (cell type minor)  
-- 03a_cell_type_mapping.py: Map cell types (cell type minor)  
-- 04_visualize_results.py: Visualize results (cell type minor)  
-- 05_train_model_major.py: Train cell2location model on PCa scRNA-seq reference (cell type major)  
-- 06a_cell_type_mapping_major.py: Map cell types (cell type major)  
-- 07_visualize_results_major.py: Visualize results (cell type major)
+- 01_h5ad_conversion.R:
+    - Convert Seurat object to .h5ad  
+- 02_train_model.py:
+    - Train cell2location model on PCa scRNA-seq reference (cell type minor)  
+- 03a_cell_type_mapping.py:
+    - Map cell types (cell type minor)  
+- 04_visualize_results.py:
+    - Visualize results (cell type minor)  
+- 05_train_model_major.py:
+    - Train cell2location model on PCa scRNA-seq reference (cell type major)  
+- 06a_cell_type_mapping_major.py:
+    - Map cell types (cell type major)  
+- 07_visualize_results_major.py:
+    - Visualize results (cell type major)
 - 08_visualise_proportions_minor.R
 - 09_visualise_proportions_major.R
-- 10_colocalisation_major.R: summarise cell2location results, & calculate spot-level cell-cell correlations (grouped by sample id & histological feature; cell type major)  
-- 11_colocalisation_minor.R: summarise cell2location results, & calculate spot-level cell-cell correlations (grouped by sample id & histological feature; cell type minor)
-- 12_train_model_minor_mal.py: Train cell2location model on PCa scRNA-seq reference (cell type minor mal - i.e. a combination of cell type minor annotation and malignant spectrum annotation for Epithelial cells)  
-- 13a_cell_type_mapping_minor_mal.py: Map cell types (cell type minor mal)  
-- 14_visualize_results_minor_mal.py: Visualize results (cell type minor mal)  
-- 15_colocalisation_minor_mal.R: summarise cell2location results, & calculate spot-level cell-cell correlations (grouped by sample id & histological feature; cell type minor mal)   
-- 16_train_model_major_temp.py: Train cell2location model on PCa scRNA-seq reference (cell type major temp - i.e. use minor annotation for CAFs and major annotation for all other cell types)  
-- 17a_cell_type_mapping_major_temp.py:  Map cell types (cell type major temp)   
-- 18_visualize_results_major_temp.py: Visualize results (cell type major temp)   
-- 19_colocalisation_major_temp.R: summarise cell2location results, & calculate spot-level cell-cell correlations (grouped by sample id & histological feature; cell type major temp)    
+- 10_colocalisation_major.R:
+    - Summarise cell2location results, & calculate spot-level cell-cell correlations (grouped by sample id & histological feature; cell type major)  
+- 11_colocalisation_minor.R:
+    - Summarise cell2location results, & calculate spot-level cell-cell correlations (grouped by sample id & histological feature; cell type minor)
+- 12_train_model_minor_mal.py:
+    - Train cell2location model on PCa scRNA-seq reference (cell type minor mal - i.e. a combination of cell type minor annotation and malignant spectrum annotation for Epithelial cells)  
+- 13a_cell_type_mapping_minor_mal.py:
+    - Map cell types (cell type minor mal)  
+- 14_visualize_results_minor_mal.py:
+    - Visualize results (cell type minor mal)  
+- 15_colocalisation_minor_mal.R:
+    - Summarise cell2location results, & calculate spot-level cell-cell correlations (grouped by sample id & histological feature; cell type minor mal)   
+- 16_train_model_major_temp.py:
+    - Train cell2location model on PCa scRNA-seq reference (cell type major temp - i.e. use minor annotation for CAFs and major annotation for all other cell types)  
+- 17a_cell_type_mapping_major_temp.py:
+    - Map cell types (cell type major temp)   
+- 18_visualize_results_major_temp.py:
+    - Visualize results (cell type major temp)   
+- 19_colocalisation_major_temp.R:
+    - Summarise cell2location results, & calculate spot-level cell-cell correlations (grouped by sample id & histological feature; cell type major temp)    
 
 
 # **Data access**   
