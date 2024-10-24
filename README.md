@@ -1,10 +1,17 @@
-TO DO:  
+# Table of Contents
 
-- [ ] Further deidentify Cansto IDs - need to be removed from scripts and .dvc files!
-- [ ] Create a new repo after updates have been made & remove scripts/data not relevant to paper (i.e. analysis of data from PMID 35948798)  
-- [ ] Add CELLxGENE links (when available)  
-- [ ] Add EGA accession number (when available)
-- [ ] Reference scRNA-seq GitHub repo  
+- [Overview of the repository](#pca-visium-analysis)  
+    - [Data analysed](#data-analysed)  
+    - [Overview of directories](#overview-of-directories)
+      - [config](#config)
+      - [data](#data)
+      - [environment](#environment)  
+      - [resources](#resources)
+      - [results](#results)
+      - [scripts](#scripts)  
+- [Data access](#data-access)  
+- [Contact](#contact)  
+- [To Do](#to-do)   
 
 
 # pca_visium_analysis  
@@ -19,21 +26,21 @@ The Visium data was processed using the scanpy package (v1.9.1) and spatial deco
   - Batch 3: 4 samples - Visium FFPE V2 (2 x 11x11mm reactions)
 - Published data from Joakim's lab (PMID 35948798)
 
-## Brief info on directories below:  
+## Overview of directories:  
 
-**config/**  
+### **config/**  
 - Contains parameter files for each script, sample sheet & other ad hoc files
 
-**data/**  
+### **data/**  
 - Contains images, anndata objects (filtered, log_norm, raw, raw_beature_bc_matrix), per-spot histopathology annotation (only for samples in the paper)
 
-**environment/**  
+### **environment/**  
 - Contains EDF and ESF files for pca_visium  
 
-**resources/**  
+### **resources/**  
 - Contains gene lists (e.g., Cepo derived signatures for pnCAFs and Glial cells), and published data (i.e. PMID 35948798)  
 
-**results/**  
+### **results/**  
 - Script outputs are saved to corresponding results dir
   - Includes results related to:
     - Basic processing and QC (found in basic_qc/, clustering/, and marker_genes/)   
@@ -41,7 +48,7 @@ The Visium data was processed using the scanpy package (v1.9.1) and spatial deco
       - **NOTA BENE** - most analyses related to the PCa manuscript can be found here!
     - Cell2Location colocalisation analyses (inhouse and published PMID 35948798 - not relevant to PCa manuscript), H&E plots, and pnCAF and Glial scanpy scores (found in 04_colocalisation_inhouse_and_published)  
 
-**scripts/**  
+### **scripts/**:  
 
 01_basic_qc/  
 - Initial pre-processing (without filtering spots), QC & visualisation
@@ -60,7 +67,27 @@ The Visium data was processed using the scanpy package (v1.9.1) and spatial deco
 - 11_colocalisation_minor.R: summarise cell2location results, & calculate spot-level cell-cell correlations (grouped by sample id & histological feature; cell type minor)
 - 12_train_model_minor_mal.py: Train cell2location model on PCa scRNA-seq reference (cell type minor mal - i.e. a combination of cell type minor annotation and malignant spectrum annotation for Epithelial cells)  
 - 13a_cell_type_mapping_minor_mal.py: Map cell types (cell type minor mal)  
-- 14_visualize_results_minor_mal.py: Visualize results (cell type minor mal)   
+- 14_visualize_results_minor_mal.py: Visualize results (cell type minor mal)
+
+
+# **Data access**   
+- Processed Visium V1 sequencing and image data is available for in-browser exploration and download through the CELLxGENE portal.   
+- Raw Visium data will be deposited in the European Genome-Phenome Archive (EGA).    
+
+
+# **Contact**  
+For further enquires, please either raise an issue via GitHub or email John Reeves (Data Manager - j.reeves(at)garvan.org.au) or Alexander Swarbrick (Lab Head - a.swarbrick(at)garvan.org.au).  
+  
+# **To do**:  
+- [ ] Further deidentify Cansto IDs - need to be removed from scripts and .dvc files!
+- [ ] Create a new repo after updates have been made & remove scripts/data not relevant to paper (i.e. analysis of data from PMID 35948798)  
+- [ ] Add CELLxGENE links for V1 (when available)
+- [ ] Add info on where Visium V2 data can be found  
+- [ ] Add EGA accession number (when available)
+- [ ] Reference Visium data DVC GitHub repo  
+- [ ] Reference scRNA-seq GitHub repo  
+
+
 - 15_colocalisation_minor_mal.R: summarise cell2location results, & calculate spot-level cell-cell correlations (grouped by sample id & histological feature; cell type minor mal)   
 - 16_train_model_major_temp.py: Train cell2location model on PCa scRNA-seq reference (cell type major temp - i.e. use minor annotation for CAFs and major annotation for all other cell types)  
 - 17a_cell_type_mapping_major_temp.py:  Map cell types (cell type major temp)   
