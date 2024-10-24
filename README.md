@@ -67,7 +67,12 @@ The Visium data was processed using the scanpy package (v1.9.1) and spatial deco
 - 11_colocalisation_minor.R: summarise cell2location results, & calculate spot-level cell-cell correlations (grouped by sample id & histological feature; cell type minor)
 - 12_train_model_minor_mal.py: Train cell2location model on PCa scRNA-seq reference (cell type minor mal - i.e. a combination of cell type minor annotation and malignant spectrum annotation for Epithelial cells)  
 - 13a_cell_type_mapping_minor_mal.py: Map cell types (cell type minor mal)  
-- 14_visualize_results_minor_mal.py: Visualize results (cell type minor mal)
+- 14_visualize_results_minor_mal.py: Visualize results (cell type minor mal)  
+- 15_colocalisation_minor_mal.R: summarise cell2location results, & calculate spot-level cell-cell correlations (grouped by sample id & histological feature; cell type minor mal)   
+- 16_train_model_major_temp.py: Train cell2location model on PCa scRNA-seq reference (cell type major temp - i.e. use minor annotation for CAFs and major annotation for all other cell types)  
+- 17a_cell_type_mapping_major_temp.py:  Map cell types (cell type major temp)   
+- 18_visualize_results_major_temp.py: Visualize results (cell type major temp)   
+- 19_colocalisation_major_temp.R: summarise cell2location results, & calculate spot-level cell-cell correlations (grouped by sample id & histological feature; cell type major temp)    
 
 
 # **Data access**   
@@ -86,11 +91,4 @@ For further enquires, please either raise an issue via GitHub or email John Reev
 - [ ] Add EGA accession number (when available)
 - [ ] Reference Visium data DVC GitHub repo  
 - [ ] Reference scRNA-seq GitHub repo  
-
-
-- 15_colocalisation_minor_mal.R: summarise cell2location results, & calculate spot-level cell-cell correlations (grouped by sample id & histological feature; cell type minor mal)   
-- 16_train_model_major_temp.py: Train cell2location model on PCa scRNA-seq reference (cell type major temp - i.e. use minor annotation for CAFs and major annotation for all other cell types)  
-- 17a_cell_type_mapping_major_temp.py:  Map cell types (cell type major temp)   
-- 18_visualize_results_major_temp.py: Visualize results (cell type major temp)   
-- 19_colocalisation_major_temp.R: summarise cell2location results, & calculate spot-level cell-cell correlations (grouped by sample id & histological feature; cell type major temp)  
 
