@@ -177,7 +177,7 @@ for(file in unique(list.files(histo_path, full.name=TRUE))){
 
 # > table(histo_df$sample_id)
 # 
-# 19617-2   20033 20111-2 20130-2 20153-2 20216-1
+# P15-2   P25 P2-2 P4-2 P10-2 P11-1
 #    1546    2941    2213    1477    1248    1718
 
 # read in histopath data for Mengxiao's dataset as a df --------------
@@ -264,12 +264,12 @@ barcode_counts <- df_tidy %>%
 # > barcode_counts
 #    sample_id unique_barcode_count
 #    <chr>                    <int>
-#  1 19617-2                   1546
-#  2 20033                     2941
-#  3 20111-2                   2213
-#  4 20130-2                   1477
-#  5 20153-2                   1248
-#  6 20216-1                   1718
+#  1 P15-2                   1546
+#  2 P25                     2941
+#  3 P2-2                   2213
+#  4 P4-2                   1477
+#  5 P10-2                   1248
+#  6 P11-1                   1718
 #  7 H1_2                      2775
 #  8 H1_4                      4079
 #  9 H1_5                      3856

@@ -70,7 +70,7 @@ for(file in unique(list.files(histo_path, full.name=TRUE))){
 
 # > table(histo_df$sample_id)
 # 
-# 19617-2   20033 20111-2 20130-2 20153-2 20216-1
+# P15-2   P25 P2-2 P4-2 P10-2 P11-1
 #    1546    2941    2213    1477    1248    1718
 
 # path to config file used in cell2location - for sample ids --------------------
@@ -119,14 +119,14 @@ barcode_counts <- df_tidy %>%
 # # A tibble: 8 x 2
 #   sample_id unique_barcode_count
 #   <chr>                    <int>
-# 1 19617-2                   1546
-# 2 20033                     2941
-# 3 20111-2                   2213
-# 4 20130-1                   2180
-# 5 20130-2                   1477
-# 6 20153-1                   1517
-# 7 20153-2                   1248
-# 8 20216-1                   1718
+# 1 P15-2                   1546
+# 2 P25                     2941
+# 3 P2-2                   2213
+# 4 P4-1                   2180
+# 5 P4-2                   1477
+# 6 P10-1                   1517
+# 7 P10-2                   1248
+# 8 P11-1                   1718
 
 # combine the two dfs --------------------
 # keeping only the 6 samples that have histo anno

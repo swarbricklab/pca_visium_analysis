@@ -65,7 +65,7 @@ args = vars(parser.parse_args())
 ## res_dir = os.path.join(project_dir, repo, "results")
 ## h5ad_dir = os.path.join(project_dir, repo, "data", "anndata_objects")
 ## sample_dir = os.path.join(project_dir, repo,  'config')
-## section_name = "20033"
+## section_name = "P25"
 ## use_data = "log_norm"
 
 # --- Arguments

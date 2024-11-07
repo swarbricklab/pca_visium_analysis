@@ -53,9 +53,9 @@ histo_path <- paste0(projectDir, "/", repo, "/data/20240318_reviewed_histo_annot
 
 histo_df <- NULL
 
-# Get the list of files and filter for those ending in C1, C2, or containing 20033
+# Get the list of files and filter for those ending in C1, C2, or containing P25
 file_list <- list.files(histo_path, full.names = TRUE)
-filtered_files <- file_list[grepl("C[12]_Histology_Reviewed\\.csv$|20033", file_list)]
+filtered_files <- file_list[grepl("C[12]_Histology_Reviewed\\.csv$|P25", file_list)]
 
 for(file in unique(filtered_files)){
   print(file)
@@ -63,7 +63,7 @@ for(file in unique(filtered_files)){
   temp_df <- read.csv(file)
   
   # Check if the file is one of the special cases
-  if(grepl("PCa20130_C1_20272_C2|PCa20153_C1_20128_C1", file)) {
+  if(grepl("PCaP4_C1_P13_C2|PCaP10_C1_P3_C1", file)) {
     # Use the sample_id from the file itself
     sample_id <- temp_df$sample_id
   } else {
