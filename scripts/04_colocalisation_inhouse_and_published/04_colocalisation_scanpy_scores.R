@@ -158,9 +158,9 @@ histo_path <- paste0(projectDir, "/", repo, "/data/20240318_reviewed_histo_annot
 
 histo_df1 <- NULL
 
-# Get the list of files and filter for those ending in C1, C2, or containing 20033
+# Get the list of files and filter for those ending in C1, C2, or containing P25
 file_list <- list.files(histo_path, full.names = TRUE)
-filtered_files <- file_list[grepl("C[12]_Histology_Reviewed\\.csv$|20033", file_list)]
+filtered_files <- file_list[grepl("C[12]_Histology_Reviewed\\.csv$|P25", file_list)]
 
 for(file in unique(filtered_files)){
   print(file)
@@ -168,7 +168,7 @@ for(file in unique(filtered_files)){
   temp_df <- read.csv(file)
   
   # Check if the file is one of the special cases
-  if(grepl("PCa20130_C1_20272_C2|PCa20153_C1_20128_C1", file)) {
+  if(grepl("PCaP4_C1_P13_C2|PCaP10_C1_P3_C1", file)) {
     # Use the sample_id from the file itself
     sample_id <- temp_df$sample_id
   } else {
@@ -442,21 +442,21 @@ anno_df$sample_id <- rownames(anno_df)
 anno_cols <- list(
     type = c("cancer" = "#9065cf",
              "adj_benign" = "#E0B57C"),
-    sample_id = c("20216-1" = "#E69F00",
-                  "19617-2" = "#56B4E9",
-                  "20111-2" = "#009E73",
-                  "20033" = "#F0E442",
-                  "20130-2" = "#0072B2",
-                  "20153-2" = "#D55E00",
-                  "20153-1" = "#CC79A7",   
-                  "20272-2" = "#999999",   
-                  "20130-1" = "#F4A82F",   
-                  "20128-1" = "#A6D854"    
+    sample_id = c("P11-1" = "#E69F00",
+                  "P15-2" = "#56B4E9",
+                  "P2-2" = "#009E73",
+                  "P25" = "#F0E442",
+                  "P4-2" = "#0072B2",
+                  "P10-2" = "#D55E00",
+                  "P10-1" = "#CC79A7",   
+                  "P13-2" = "#999999",   
+                  "P4-1" = "#F4A82F",   
+                  "P3-1" = "#A6D854"    
     )
 )
 
 # order the matrix by adjacent benign samples, followed by cancer
-# desired_order = c('20111-2', '20153-2', '20130-2', '20033', '20216-1', '19617-2', '20153-1', '20272-2', '20130-1', '20128-1')
+# desired_order = c('P2-2', 'P10-2', 'P4-2', 'P25', 'P11-1', 'P15-2', 'P10-1', 'P13-2', 'P4-1', 'P3-1')
 
 # reindex the df with the desired order of columns
 # filtered_t_cor_matrix = filtered_t_cor_matrix[, desired_order]

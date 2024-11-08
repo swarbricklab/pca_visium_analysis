@@ -177,7 +177,7 @@ for(file in unique(list.files(histo_path, full.name=TRUE))){
 
 # > table(histo_df$sample_id)
 # 
-# 19617-2   20033 20111-2 20130-2 20153-2 20216-1
+# P15-2   P25 P2-2 P4-2 P10-2 P11-1
 #    1546    2941    2213    1477    1248    1718
 
 # read in histopath data for Mengxiao's dataset as a df --------------
@@ -265,12 +265,12 @@ barcode_counts <- df_tidy %>%
 # # A tibble: 13 × 2
 #    sample_id unique_barcode_count
 #    <chr>                    <int>
-#  1 19617-2                   1546
-#  2 20033                     2941
-#  3 20111-2                   2213
-#  4 20130-2                   1477
-#  5 20153-2                   1248
-#  6 20216-1                   1718
+#  1 P15-2                   1546
+#  2 P25                     2941
+#  3 P2-2                   2213
+#  4 P4-2                   1477
+#  5 P10-2                   1248
+#  6 P11-1                   1718
 #  7 H1_2                      2775
 #  8 H1_4                      4079
 #  9 H1_5                      3856
@@ -416,12 +416,12 @@ anno_df$sample_id <- rownames(anno_df)
 anno_cols <- list(
     type = c("cancer" = "#9065cf",
              "adj_benign" =  "#E0B57C"),
-    sample_id = c("20216-1" = "#E69F00",
-                  "19617-2" = "#56B4E9",
-                  "20111-2" = "#009E73",
-                  "20033" = "#F0E442",
-                  "20130-2" = "#0072B2",
-                  "20153-2" = "#D55E00",
+    sample_id = c("P11-1" = "#E69F00",
+                  "P15-2" = "#56B4E9",
+                  "P2-2" = "#009E73",
+                  "P25" = "#F0E442",
+                  "P4-2" = "#0072B2",
+                  "P10-2" = "#D55E00",
                   "H1_4" = "#FF5733",
                   "H1_2" = "#33FF57",
                   "H2_1" = "#FF33C7",
@@ -431,7 +431,7 @@ anno_cols <- list(
                   "V1_2" = "#7C33FF"))
 
 # order the matrix by adjacent benign samples, followed by cancer
-desired_order = c('20111-2', '20153-2', '20130-2', 'V1_2', '20033', '20216-1', '19617-2', "H1_4", "H1_2", "H2_1", "H2_2", "H2_5", "H1_5")
+desired_order = c('P2-2', 'P10-2', 'P4-2', 'V1_2', 'P25', 'P11-1', 'P15-2', "H1_4", "H1_2", "H2_1", "H2_2", "H2_5", "H1_5")
 
 # reindex the df with the desired order of columns
 filtered_t_cor_matrix = filtered_t_cor_matrix[, desired_order]
