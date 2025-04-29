@@ -52,8 +52,8 @@ files_in_h5ad_dir = os.listdir(h5ad_dir)
 
 # Filter section names to only keep those present in files with 'log_norm_meta.h5ad' suffix
 filtered_section_names = [name for name in section_names if f"{name}_log_norm_meta.h5ad" in files_in_h5ad_dir]
-# Exclude 'A1_20033' and filter section names based on available files
-filtered_section_names = [name for name in section_names if name != 'A1_20033' and name != 'B1_20111_C2' and f"{name}_log_norm_meta.h5ad" in files_in_h5ad_dir]
+# Exclude 'A1_P25' and filter section names based on available files
+filtered_section_names = [name for name in section_names if name != 'A1_P25' and name != 'B1_P2_C2' and f"{name}_log_norm_meta.h5ad" in files_in_h5ad_dir]
 
 # Print the filtered section names
 print(filtered_section_names)

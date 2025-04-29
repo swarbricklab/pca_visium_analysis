@@ -1,6 +1,6 @@
 # --- Arguments
 project_dir = '/share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_analysis'
-sample_id = '20033'
+sample_id = 'P25'
 use_data = 'log_norm'
 
 # data_dir = args["data_dir"]
