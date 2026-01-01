@@ -6,7 +6,7 @@
 
 # for PCa Visium samples batch 3, this script was run manually, using params_qc_manual.py in config/
 # this was due to conda env playing up & requiring repo recloning etc.
-# to access individual samples on a section, use:  adata_dict['PCa20153_C1_20128_C1'].obs['sample_id']
+# to access individual samples on a section, use:  adata_dict['PCaP10_C1_P3_C1'].obs['sample_id']
 
 # --- Define environment
 # env: pca-visium

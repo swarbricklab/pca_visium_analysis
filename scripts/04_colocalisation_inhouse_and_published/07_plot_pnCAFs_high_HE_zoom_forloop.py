@@ -51,7 +51,7 @@ sample_sheet = pd.read_csv(os.path.join(sample_dir, sample_sheet_file))
 # Get unique section names for batches 2 and 3
 section_names = sample_sheet[sample_sheet['batch'].isin([2, 3])]['section_name'].unique()
 
-section_name = "A1_20216_C1"
+section_name = "A1_P11_C1"
 
 slide_size = sample_sheet[sample_sheet['section_name'] == section_name]['slide_size'].values[0]
 
@@ -136,11 +136,11 @@ adata_sub = adata[adata.obs['pnCAFs_score'] > threshold]
 # Find the original high-res image
 
 # new samples:
-# /share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_eva/data/processed/spaceranger_outs/PCa20153_C1_20128_C1/outs/spatial
+# /share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_eva/data/processed/spaceranger_outs/PCaP10_C1_P3_C1/outs/spatial
 #  tissue_hires_image.png
 
 # old samples:
-# /share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_eva/data/processed/spaceranger_outs/A1_20216_C1/outs/spatial
+# /share/ScratchGeneral/evaapo/projects/PCa_Visium/pca_visium_eva/data/processed/spaceranger_outs/A1_P11_C1/outs/spatial
 # tissue_hires_image.png
 
 

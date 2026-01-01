@@ -54,9 +54,9 @@ files_in_h5ad_dir = os.listdir(h5ad_dir)
 
 # Filter section names to only keep those present in files with 'log_norm_meta.h5ad' suffix
 filtered_section_names = [name for name in section_names if f"{name}_log_norm_meta.h5ad" in files_in_h5ad_dir]
-# Exclude 'A1_20033' and filter section names based on available files
+# Exclude 'A1_P25' and filter section names based on available files
 # filtering out these section names manually - the for loop is failing, perhaps bc they dont have enough spots above threshold??
-filtered_section_names = [name for name in section_names if name != 'A1_20033' and name != 'B1_19617_C2' and name != 'D1_20130_C2' and f"{name}_log_norm_meta.h5ad" in files_in_h5ad_dir]
+filtered_section_names = [name for name in section_names if name != 'A1_P25' and name != 'B1_P15_C2' and name != 'D1_P4_C2' and f"{name}_log_norm_meta.h5ad" in files_in_h5ad_dir]
 
 # Print the filtered section names
 print(filtered_section_names)

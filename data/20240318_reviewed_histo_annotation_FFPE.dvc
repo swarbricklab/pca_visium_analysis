@@ -1,5 +1,6 @@
 outs:
-- md5: 24931564b917cdca96a5e2d05ba7472b.dir
+- md5: 6f1405675ff259b4bf54b2f96cf25e19.dir
   size: 1033219
   nfiles: 8
   path: 20240318_reviewed_histo_annotation_FFPE
+  hash: md5
